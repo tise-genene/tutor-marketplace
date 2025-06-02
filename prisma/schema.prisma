@@ -1,0 +1,167 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          UserRole  @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Profile fields
+  bio           String?
+  phoneNumber   String?
+  location      String?
+  profileImage  String?
+  language      String   // Primary language
+  languages     String[]  // Additional languages
+
+  // Relationships
+  tutorProfile  TutorProfile?
+  bookings      Booking[]    @relation("StudentBookings")
+  tutorBookings Booking[]    @relation("TutorBookings")
+  reviews       Review[]     @relation("GivenReviews")
+  receivedReviews Review[]   @relation("ReceivedReviews")
+  messages      Message[]    @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+}
+
+model TutorProfile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  hourlyRate    Float
+  availability  Json      // Store availability as JSON
+  subjects      Subject[]
+  education     Education[]
+  experience    Experience[]
+  certifications Certification[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Subject {
+  id            String    @id @default(cuid())
+  name          String
+  level         String    // e.g., "Beginner", "Intermediate", "Advanced"
+  tutorProfiles TutorProfile[]
+  bookings      Booking[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Education {
+  id            String    @id @default(cuid())
+  tutorProfileId String
+  tutorProfile  TutorProfile @relation(fields: [tutorProfileId], references: [id])
+  institution   String
+  degree        String
+  field         String
+  startDate     DateTime
+  endDate       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Experience {
+  id            String    @id @default(cuid())
+  tutorProfileId String
+  tutorProfile  TutorProfile @relation(fields: [tutorProfileId], references: [id])
+  title         String
+  company       String
+  description   String
+  startDate     DateTime
+  endDate       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Certification {
+  id            String    @id @default(cuid())
+  tutorProfileId String
+  tutorProfile  TutorProfile @relation(fields: [tutorProfileId], references: [id])
+  name          String
+  issuer        String
+  date          DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Booking {
+  id            String    @id @default(cuid())
+  studentId     String
+  student       User      @relation("StudentBookings", fields: [studentId], references: [id])
+  tutorId       String
+  tutor         User      @relation("TutorBookings", fields: [tutorId], references: [id])
+  subjectId     String
+  subject       Subject   @relation(fields: [subjectId], references: [id])
+  startTime     DateTime
+  endTime       DateTime
+  status        BookingStatus @default(PENDING)
+  price         Float
+  paymentStatus PaymentStatus @default(PENDING)
+  review        Review?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Review {
+  id            String    @id @default(cuid())
+  rating        Int       @db.SmallInt
+  comment       String?
+  reviewerId    String
+  reviewer      User      @relation("GivenReviews", fields: [reviewerId], references: [id])
+  reviewedId    String
+  reviewed      User      @relation("ReceivedReviews", fields: [reviewedId], references: [id])
+  bookingId     String    @unique
+  booking       Booking   @relation(fields: [bookingId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Message {
+  id            String    @id @default(cuid())
+  content       String
+  senderId      String
+  sender        User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId    String
+  receiver      User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  read          Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  TUTOR
+  STUDENT
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
