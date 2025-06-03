@@ -29,6 +29,7 @@ model User {
   tutorReviews  Review[]  @relation("TutorReviews")
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
+  notifications   Notification[]
 }
 
 model TutorProfile {
@@ -111,4 +112,27 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  NEW_REVIEW
+  BOOKING_REQUEST
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      NotificationType
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  relatedId String?  // ID of the related entity (message, review, etc.)
+  
+  @@index([userId])
 }
