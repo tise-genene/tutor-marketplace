@@ -8,8 +8,8 @@ import { MainLayout } from "@/components/layout/main-layout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TutorHub - Find Ethiopian Tutors",
-  description: "Connect with qualified Ethiopian tutors for personalized learning experiences.",
+  title: "Tutor Marketplace",
+  description: "Find the perfect tutor for your learning journey",
 };
 
 export default function RootLayout({

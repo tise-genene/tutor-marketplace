@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
+import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
-import { prisma } from "@/lib/prisma"
 
-export async function POST(req: Request) {
+const prisma = new PrismaClient()
+
+export async function POST(request: Request) {
   try {
-    const { name, email, password, role } = await req.json()
+    const { name, email, password, role } = await request.json()
 
     if (!name || !email || !password || !role) {
       return NextResponse.json(
@@ -38,6 +40,9 @@ export async function POST(req: Request) {
       },
     })
 
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user
+
     // Create profile for tutors
     if (role === "TUTOR") {
       await prisma.profile.create({
@@ -50,7 +55,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { message: "User created successfully" },
+      { message: "User created successfully", user: userWithoutPassword },
       { status: 201 }
     )
   } catch (error) {

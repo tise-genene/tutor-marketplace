@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -14,194 +13,94 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
 model User {
   id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          UserRole  @default(STUDENT)
-  accounts      Account[]
-  sessions      Session[]
-  profile       Profile?
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(STUDENT)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-
-  // Profile fields
-  bio           String?
-  phoneNumber   String?
-  location      String?
-  profileImage  String?
-  language      String   // Primary language
-  languages     String[]  // Additional languages
-
-  // Relationships
   tutorProfile  TutorProfile?
-  bookings      Booking[]    @relation("StudentBookings")
-  tutorBookings Booking[]    @relation("TutorBookings")
-  reviews       Review[]     @relation("GivenReviews")
-  receivedReviews Review[]   @relation("ReceivedReviews")
-  messages      Message[]    @relation("SentMessages")
+  studentProfile StudentProfile?
+  bookings      Booking[] @relation("StudentBookings")
+  tutorBookings Booking[] @relation("TutorBookings")
+  reviews       Review[]  @relation("StudentReviews")
+  tutorReviews  Review[]  @relation("TutorReviews")
+  sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
 }
 
-model Profile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bio         String?
-  education   String?
-  experience  String?
-  hourlyRate  Float?
-  subjects    String[]
-  languages   String[]
-  availability String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
 model TutorProfile {
-  id            String    @id @default(cuid())
-  userId        String    @unique
-  user          User      @relation(fields: [userId], references: [id])
-  hourlyRate    Float
-  availability  Json      // Store availability as JSON
-  subjects      Subject[]
-  education     Education[]
-  experience    Experience[]
-  certifications Certification[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio         String?
+  subjects    String[]
+  education   String[]
+  experience  Int       @default(0)
+  hourlyRate  Float
+  location    String
+  availability Json     // Store availability as JSON
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
-model Subject {
-  id            String    @id @default(cuid())
-  name          String
-  level         String    // e.g., "Beginner", "Intermediate", "Advanced"
-  tutorProfiles TutorProfile[]
-  bookings      Booking[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
-model Education {
-  id            String    @id @default(cuid())
-  tutorProfileId String
-  tutorProfile  TutorProfile @relation(fields: [tutorProfileId], references: [id])
-  institution   String
-  degree        String
-  field         String
-  startDate     DateTime
-  endDate       DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
-model Experience {
-  id            String    @id @default(cuid())
-  tutorProfileId String
-  tutorProfile  TutorProfile @relation(fields: [tutorProfileId], references: [id])
-  title         String
-  company       String
-  description   String
-  startDate     DateTime
-  endDate       DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
-model Certification {
-  id            String    @id @default(cuid())
-  tutorProfileId String
-  tutorProfile  TutorProfile @relation(fields: [tutorProfileId], references: [id])
-  name          String
-  issuer        String
-  date          DateTime
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model StudentProfile {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grade     String?
+  subjects  String[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Booking {
-  id            String    @id @default(cuid())
-  studentId     String
-  student       User      @relation("StudentBookings", fields: [studentId], references: [id])
-  tutorId       String
-  tutor         User      @relation("TutorBookings", fields: [tutorId], references: [id])
-  subjectId     String
-  subject       Subject   @relation(fields: [subjectId], references: [id])
-  startTime     DateTime
-  endTime       DateTime
-  status        BookingStatus @default(PENDING)
-  price         Float
-  paymentStatus PaymentStatus @default(PENDING)
-  review        Review?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  studentId   String
+  student     User      @relation("StudentBookings", fields: [studentId], references: [id])
+  tutorId     String
+  tutor       User      @relation("TutorBookings", fields: [tutorId], references: [id])
+  date        DateTime
+  startTime   String
+  endTime     String
+  status      BookingStatus @default(PENDING)
+  subject     String
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Review {
-  id            String    @id @default(cuid())
-  rating        Int       @db.SmallInt
-  comment       String?
-  reviewerId    String
-  reviewer      User      @relation("GivenReviews", fields: [reviewerId], references: [id])
-  reviewedId    String
-  reviewed      User      @relation("ReceivedReviews", fields: [reviewedId], references: [id])
-  bookingId     String    @unique
-  booking       Booking   @relation(fields: [bookingId], references: [id])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  studentId   String
+  student     User      @relation("StudentReviews", fields: [studentId], references: [id])
+  tutorId     String
+  tutor       User      @relation("TutorReviews", fields: [tutorId], references: [id])
+  rating      Int
+  comment     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Message {
-  id            String    @id @default(cuid())
-  content       String
-  senderId      String
-  sender        User      @relation("SentMessages", fields: [senderId], references: [id])
-  receiverId    String
-  receiver      User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  read          Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+  
+  senderId  String
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
 }
 
-enum UserRole {
+enum Role {
   STUDENT
   TUTOR
   ADMIN
@@ -212,11 +111,4 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  REFUNDED
-  FAILED
 }
