@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
           }
         });
 
-        if (!user || !user?.password) {
+        if (!user || !user.password) {
           throw new Error("Invalid credentials");
         }
 
@@ -43,13 +43,29 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   pages: {
-    signIn: "/login",
+    signIn: "/auth/login",
+    signUp: "/auth/register",
+    error: "/auth/error",
   },
-  debug: process.env.NODE_ENV === "development",
   session: {
-    strategy: "jwt",
+    strategy: "jwt"
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+      }
+      return session;
+    }
+  }
 };
 
 const handler = NextAuth(authOptions);
