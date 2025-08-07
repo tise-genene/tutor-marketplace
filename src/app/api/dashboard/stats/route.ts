@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
 
 interface DashboardStats {
   totalBookings: number;
@@ -44,7 +42,6 @@ export async function GET() {
         ],
       },
       include: {
-        reviews: true,
         tutor: {
           include: {
             tutorProfile: true,
