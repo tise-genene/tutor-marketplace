@@ -17,14 +17,14 @@ export function MainLayout({ children }: MainLayoutProps) {
             <Link href="/search" className="text-sm hover:text-primary">
               Find Tutors
             </Link>
-            <Link href="/become-tutor" className="text-sm hover:text-primary">
+            <Link href="/auth/register" className="text-sm hover:text-primary">
               Become a Tutor
             </Link>
-            <Link href="/login" className="text-sm hover:text-primary">
+            <Link href="/auth/login" className="text-sm hover:text-primary">
               Login
             </Link>
             <Link
-              href="/signup"
+              href="/auth/register"
               className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
             >
               Sign Up
@@ -70,7 +70,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               <h3 className="font-semibold mb-4">For Tutors</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/become-tutor" className="hover:text-primary">
+                  <Link href="/auth/register" className="hover:text-primary">
                     Become a Tutor
                   </Link>
                 </li>

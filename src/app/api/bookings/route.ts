@@ -1,135 +1,99 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { createBookingSchema } from '@/lib/validations/bookings';
+import { validateRequestBody } from '@/lib/validate-request';
+import { apiSuccess, ApiErrors } from '@/lib/api-response';
+import { withApiHandler } from '@/lib/api-middleware';
 
-export async function POST(request: Request) {
-  try {
+export async function POST(request: NextRequest) {
+  return withApiHandler(async (req) => {
     const session = await getServerSession(authOptions);
+    if (!session) return ApiErrors.UNAUTHORIZED();
 
-    if (!session) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { tutorId, date, startTime, endTime, subject } = await request.json();
-
-    // Validate required fields
-    if (!tutorId || !date || !startTime || !endTime || !subject) {
-      return NextResponse.json(
-        { message: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Check if the user is a student
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
     });
+    if (!user) return ApiErrors.NOT_FOUND('User');
+    if (user.role !== 'STUDENT') return ApiErrors.FORBIDDEN();
 
-    if (!user || user.role !== 'STUDENT') {
-      return NextResponse.json(
-        { message: 'Only students can create bookings' },
-        { status: 403 }
-      );
-    }
+    const validation = await validateRequestBody(req, createBookingSchema);
+    if (!validation.success) return validation.error;
 
-    // Check if the tutor exists
+    const { tutorId, date, startTime, endTime, subjectId, notes } = validation.data;
+
+    // Check tutor exists
     const tutor = await prisma.user.findUnique({
-      where: { id: tutorId },
+      where: { id: tutorId, role: 'TUTOR' },
       include: { tutorProfile: true },
     });
+    if (!tutor) return ApiErrors.NOT_FOUND('Tutor');
 
-    if (!tutor || tutor.role !== 'TUTOR') {
-      return NextResponse.json(
-        { message: 'Invalid tutor' },
-        { status: 400 }
-      );
-    }
-
-    // Check if the time slot is available
-    const existingBooking = await prisma.booking.findFirst({
+    // Check time slot availability
+    const conflictingBooking = await prisma.booking.findFirst({
       where: {
         tutorId,
         date: new Date(date),
+        status: { not: 'CANCELLED' },
         OR: [
-          {
-            AND: [
-              { startTime: { lte: startTime } },
-              { endTime: { gt: startTime } },
-            ],
-          },
-          {
-            AND: [
-              { startTime: { lt: endTime } },
-              { endTime: { gte: endTime } },
-            ],
-          },
+          { AND: [{ startTime: { lte: startTime } }, { endTime: { gt: startTime } }] },
+          { AND: [{ startTime: { lt: endTime } }, { endTime: { gte: endTime } }] },
+          { AND: [{ startTime: { gte: startTime } }, { endTime: { lte: endTime } }] },
         ],
-        status: {
-          notIn: ['CANCELLED'],
+      },
+    });
+
+    if (conflictingBooking) {
+      return ApiErrors.INVALID_INPUT('Time slot is not available');
+    }
+
+    // Get the hourly rate for this tutor-subject combination
+    const tutorSubject = await prisma.tutorSubject.findUnique({
+      where: {
+        tutorId_subjectId: {
+          tutorId: tutor.tutorProfile!.id,
+          subjectId,
         },
       },
     });
 
-    if (existingBooking) {
-      return NextResponse.json(
-        { message: 'This time slot is already booked' },
-        { status: 400 }
-      );
+    if (!tutorSubject) {
+      return ApiErrors.INVALID_INPUT('Tutor does not teach this subject');
     }
 
-    // Create the booking
     const booking = await prisma.booking.create({
       data: {
         studentId: user.id,
         tutorId,
+        subjectId,
         date: new Date(date),
         startTime,
         endTime,
-        subject,
+        notes,
+        hourlyRate: tutorSubject.hourlyRate,
         status: 'PENDING',
+      },
+      include: {
+        tutor: { select: { id: true, name: true, tutorProfile: { select: { hourlyRate: true } } } },
+        student: { select: { id: true, name: true } },
       },
     });
 
-    return NextResponse.json(
-      { message: 'Booking created successfully', booking },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('Booking creation error:', error);
-    return NextResponse.json(
-      { message: 'Something went wrong' },
-      { status: 500 }
-    );
-  }
+    return apiSuccess(booking, 201);
+  }, request);
 }
 
-export async function GET(request: Request) {
-  try {
+export async function GET(request: NextRequest) {
+  return withApiHandler(async (req) => {
     const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    if (!session) return ApiErrors.UNAUTHORIZED();
 
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
     });
+    if (!user) return ApiErrors.NOT_FOUND('User');
 
-    if (!user) {
-      return NextResponse.json(
-        { message: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Get bookings based on user role
     const bookings = await prisma.booking.findMany({
       where: {
         OR: [
@@ -138,32 +102,12 @@ export async function GET(request: Request) {
         ],
       },
       include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        tutor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        tutor: { select: { id: true, name: true, tutorProfile: { select: { hourlyRate: true } } } },
+        student: { select: { id: true, name: true } },
       },
-      orderBy: {
-        date: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ bookings });
-  } catch (error) {
-    console.error('Error fetching bookings:', error);
-    return NextResponse.json(
-      { message: 'Something went wrong' },
-      { status: 500 }
-    );
-  }
-} 
+    return apiSuccess(bookings);
+  }, request);
+}

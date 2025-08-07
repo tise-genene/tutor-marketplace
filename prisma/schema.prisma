@@ -32,19 +32,75 @@ model User {
   notifications   Notification[]
 }
 
+// New Subject model for proper relationships
+model Subject {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  category    String    // Math, Science, Language, etc.
+  description String?
+  createdAt   DateTime  @default(now())
+  
+  // Relations
+  tutorSubjects    TutorSubject[]
+  studentSubjects  StudentSubject[]
+  bookings         Booking[]
+  
+  @@index([category])
+  @@index([name])
+}
+
+// Junction table for tutor subjects (many-to-many)
+model TutorSubject {
+  id        String   @id @default(cuid())
+  tutorId   String
+  subjectId String
+  hourlyRate Float   // Per-subject pricing
+  experience Int     @default(0) // Years in this subject
+  
+  tutor     TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  subject   Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  
+  @@unique([tutorId, subjectId])
+  @@index([tutorId])
+  @@index([subjectId])
+}
+
+// Junction table for student subjects
+model StudentSubject {
+  id        String   @id @default(cuid())
+  studentId String
+  subjectId String
+  level     String?  // Beginner, Intermediate, Advanced
+  
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject   Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  
+  @@unique([studentId, subjectId])
+  @@index([studentId])
+  @@index([subjectId])
+}
+
 model TutorProfile {
   id          String    @id @default(cuid())
   userId      String    @unique
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio         String?
-  subjects    String    // JSON string for SQLite
-  education   String    // JSON string for SQLite
+  education   String    // JSON string for SQLite compatibility
   experience  Int       @default(0)
-  hourlyRate  Float
   location    String
   availability Json     // Store availability as JSON
+  isVerified  Boolean   @default(false)
+  rating      Float     @default(0)
+  totalReviews Int      @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  subjects    TutorSubject[]
+  
+  @@index([location])
+  @@index([rating])
+  @@index([isVerified])
 }
 
 model StudentProfile {
@@ -52,9 +108,11 @@ model StudentProfile {
   userId    String    @unique
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   grade     String?
-  subjects  String    // JSON string for SQLite
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  
+  // Relations
+  subjects  StudentSubject[]
 }
 
 model Booking {
@@ -63,14 +121,22 @@ model Booking {
   student     User      @relation("StudentBookings", fields: [studentId], references: [id])
   tutorId     String
   tutor       User      @relation("TutorBookings", fields: [tutorId], references: [id])
+  subjectId   String
+  subject     Subject   @relation(fields: [subjectId], references: [id])
   date        DateTime
   startTime   String
   endTime     String
   status      BookingStatus @default(PENDING)
-  subject     String
   notes       String?
+  hourlyRate  Float     // Rate at time of booking
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  @@index([studentId])
+  @@index([tutorId])
+  @@index([subjectId])
+  @@index([date])
+  @@index([status])
 }
 
 model Review {
@@ -83,6 +149,9 @@ model Review {
   comment     String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  @@index([tutorId])
+  @@index([rating])
 }
 
 model Message {

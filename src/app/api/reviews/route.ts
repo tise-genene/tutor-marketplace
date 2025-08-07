@@ -1,148 +1,90 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { createReviewSchema, getReviewsSchema } from '@/lib/validations/reviews';
+import { validateRequestBody, validateQuery } from '@/lib/validate-request';
+import { apiSuccess, ApiErrors } from '@/lib/api-response';
+import { withApiHandler } from '@/lib/api-middleware';
 
-// GET /api/reviews - Get all reviews for a tutor
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const tutorId = searchParams.get('tutorId');
+export async function GET(request: NextRequest) {
+  return withApiHandler(async (req) => {
+    const validation = validateQuery(req.nextUrl.searchParams, getReviewsSchema);
+    if (!validation.success) return validation.error;
 
-    if (!tutorId) {
-      return NextResponse.json(
-        { message: 'Tutor ID is required' },
-        { status: 400 }
-      );
-    }
+    const { tutorId, page, limit } = validation.data;
+    const skip = (page - 1) * limit;
 
-    const reviews = await prisma.review.findMany({
-      where: {
-        tutorId: tutorId,
-      },
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-          },
+    const [reviews, total] = await Promise.all([
+      prisma.review.findMany({
+        where: { tutorId },
+        include: {
+          student: { select: { id: true, name: true } }
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.review.count({ where: { tutorId } })
+    ]);
 
-    return NextResponse.json(reviews);
-  } catch (error) {
-    console.error('Error fetching reviews:', error);
-    return NextResponse.json(
-      { message: 'Something went wrong' },
-      { status: 500 }
-    );
-  }
+    return apiSuccess(reviews, 200, {
+      page, limit, total, pages: Math.ceil(total / limit)
+    });
+  }, request);
 }
 
-// POST /api/reviews - Create a new review
-export async function POST(request: Request) {
-  try {
+export async function POST(request: NextRequest) {
+  return withApiHandler(async (req) => {
     const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    if (!session) return ApiErrors.UNAUTHORIZED();
 
     const user = await prisma.user.findUnique({
       where: { email: session.user?.email as string },
     });
+    if (!user) return ApiErrors.NOT_FOUND('User');
+    if (user.role !== 'STUDENT') return ApiErrors.FORBIDDEN();
 
-    if (!user) {
-      return NextResponse.json(
-        { message: 'User not found' },
-        { status: 404 }
-      );
+    const validation = await validateRequestBody(req, createReviewSchema);
+    if (!validation.success) return validation.error;
+
+    const { tutorId, rating, comment, bookingId } = validation.data;
+
+    // Check for existing review
+    const existingReview = await prisma.review.findFirst({
+      where: { studentId: user.id, tutorId }
+    });
+    if (existingReview) {
+      return ApiErrors.INVALID_INPUT('You have already reviewed this tutor');
     }
 
-    const body = await request.json();
-    const { tutorId, rating, comment, bookingId } = body;
-
-    // Validate input
-    if (!tutorId || !rating || rating < 1 || rating > 5) {
-      return NextResponse.json(
-        { message: 'Invalid input. Tutor ID and rating (1-5) are required.' },
-        { status: 400 }
-      );
-    }
-
-    // Check if user is a student and has completed booking with this tutor
-    if (user.role !== 'STUDENT') {
-      return NextResponse.json(
-        { message: 'Only students can leave reviews' },
-        { status: 403 }
-      );
-    }
-
-    // Verify the booking exists and is completed
+    // Verify completed booking if provided
     if (bookingId) {
       const booking = await prisma.booking.findFirst({
         where: {
           id: bookingId,
           studentId: user.id,
-          tutorId: tutorId,
+          tutorId,
           status: 'COMPLETED',
         },
       });
-
       if (!booking) {
-        return NextResponse.json(
-          { message: 'You can only review completed bookings' },
-          { status: 400 }
-        );
-      }
-
-      // Check if review already exists for this booking
-      const existingReview = await prisma.review.findFirst({
-        where: {
-          studentId: user.id,
-          tutorId: tutorId,
-        },
-      });
-
-      if (existingReview) {
-        return NextResponse.json(
-          { message: 'You have already reviewed this tutor' },
-          { status: 400 }
-        );
+        return ApiErrors.INVALID_INPUT('You can only review completed bookings');
       }
     }
 
-    // Create the review
     const review = await prisma.review.create({
       data: {
         studentId: user.id,
-        tutorId: tutorId,
-        rating: parseInt(rating),
+        tutorId,
+        rating,
         comment: comment || null,
       },
       include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        student: { select: { id: true, name: true } }
       },
     });
 
-    return NextResponse.json(review, { status: 201 });
-  } catch (error) {
-    console.error('Error creating review:', error);
-    return NextResponse.json(
-      { message: 'Something went wrong' },
-      { status: 500 }
-    );
-  }
+    return apiSuccess(review, 201);
+  }, request);
 }
