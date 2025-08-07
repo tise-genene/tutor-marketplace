@@ -35,7 +35,7 @@ export function Navigation() {
                 </Link>
               )}
               <Link
-                href="/how-it-works"
+                href="/#how-it-works"
                 className="text-gray-700 hover:text-green-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-green-50"
               >
                 How It Works
