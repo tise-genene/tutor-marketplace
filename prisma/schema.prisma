@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -37,8 +37,8 @@ model TutorProfile {
   userId      String    @unique
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio         String?
-  subjects    String[]
-  education   String[]
+  subjects    String    // JSON string for SQLite
+  education   String    // JSON string for SQLite
   experience  Int       @default(0)
   hourlyRate  Float
   location    String
@@ -52,7 +52,7 @@ model StudentProfile {
   userId    String    @unique
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   grade     String?
-  subjects  String[]
+  subjects  String    // JSON string for SQLite
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }

@@ -22,7 +22,7 @@ export default function Home() {
                 Find a Tutor
               </Link>
               <Link
-                href="/become-tutor"
+                href="/auth/register"
                 className="bg-transparent border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white/10 transition"
               >
                 Become a Tutor

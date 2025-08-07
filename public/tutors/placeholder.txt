@@ -1,0 +1,11 @@
+# Tutor Images Directory
+
+This directory is for storing tutor profile images.
+
+Missing images that were requested:
+- tutor1.jpg
+- tutor2.jpg
+
+You can add real images here or use placeholder image services like:
+- https://via.placeholder.com/150x150/4F46E5/FFFFFF?text=Tutor+1
+- https://picsum.photos/150/150?random=1
