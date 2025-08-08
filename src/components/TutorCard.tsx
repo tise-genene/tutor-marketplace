@@ -13,6 +13,7 @@ interface TutorCardProps {
   location: string;
   isVerified?: boolean;
   totalReviews?: number;
+  variant?: 'grid' | 'list';
 }
 
 export function TutorCard({
@@ -26,7 +27,70 @@ export function TutorCard({
   location,
   isVerified = false,
   totalReviews = 0,
+  variant = 'grid',
 }: TutorCardProps) {
+  if (variant === 'list') {
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg transition-shadow">
+        <div className="flex gap-4">
+          <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+            {/* Fixed-size image for list layout */}
+            <Image src={image} alt={name} width={96} height={96} className="w-full h-full object-cover" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 truncate">{name}</h3>
+                  {isVerified && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
+                      <Shield className="w-3 h-3" /> Verified
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                  <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-gray-400" />{location}</span>
+                  <span className="inline-flex items-center gap-1"><BookOpen className="w-4 h-4 text-blue-500" />{subjects.slice(0, 2).join(', ')}{subjects.length > 2 ? ` +${subjects.length - 2}` : ''}</span>
+                  <span className="inline-flex items-center gap-1"><Clock className="w-4 h-4 text-purple-500" />{experience} yrs</span>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <div className="text-2xl font-extrabold text-gray-900">${hourlyRate}</div>
+                <div className="text-xs text-gray-500">per hour</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-3">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+              ))}
+              <span className="text-sm font-medium text-gray-700">{rating.toFixed(1)}</span>
+              <span className="text-sm text-gray-500">({totalReviews} reviews)</span>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {subjects.slice(0, 3).map((s, idx) => (
+                  <span key={idx} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">{s}</span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Link href={`/tutor/${id}`} className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-xl font-semibold hover:bg-blue-50">
+                  View Profile
+                </Link>
+                <Link href={`/tutor/${id}/book`} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700">
+                  Hire
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 border border-gray-100">
         <div className="relative h-56 w-full overflow-hidden">
@@ -133,7 +197,7 @@ export function TutorCard({
               href={`/tutor/${id}/book`}
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 group-hover:shadow-lg text-center"
             >
-              Book Session
+              Hire
             </Link>
           </div>
         </div>

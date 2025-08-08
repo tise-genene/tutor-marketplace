@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Search, SlidersHorizontal, MapPin, Star, DollarSign, BookOpen } from 'lucide-react';
 
 interface SearchFiltersProps {
+  value: SearchFilters;
+  onChange: (filters: SearchFilters) => void;
   onSearch: (filters: SearchFilters) => void;
 }
 
@@ -18,14 +20,8 @@ const POPULAR_SUBJECTS = [
   'Computer Science', 'Economics', 'Psychology', 'Spanish', 'French', 'Art'
 ];
 
-export function SearchFilters({ onSearch }: SearchFiltersProps) {
-  const [filters, setFilters] = useState<SearchFilters>({
-    query: '',
-    subjects: [],
-    minRating: 0,
-    maxPrice: 1000,
-    location: '',
-  });
+export function SearchFilters({ value: filters, onChange, onSearch }: SearchFiltersProps) {
+  // Note: Component is now controlled by parent via value/onChange
 
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -35,7 +31,7 @@ export function SearchFilters({ onSearch }: SearchFiltersProps) {
   };
 
   const toggleSubject = (subject: string) => {
-    setFilters({
+    onChange({
       ...filters,
       subjects: filters.subjects.includes(subject)
         ? filters.subjects.filter(s => s !== subject)
@@ -57,7 +53,7 @@ export function SearchFilters({ onSearch }: SearchFiltersProps) {
                 placeholder="Search tutors, subjects, or specialties..."
                 className="flex-1 bg-transparent border-0 text-gray-800 placeholder-gray-500 focus:outline-none"
                 value={filters.query}
-                onChange={(e) => setFilters({ ...filters, query: e.target.value })}
+                onChange={(e) => onChange({ ...filters, query: e.target.value })}
               />
               
               <div className="hidden sm:flex items-center gap-3">
@@ -68,7 +64,7 @@ export function SearchFilters({ onSearch }: SearchFiltersProps) {
                   placeholder="Location"
                   className="w-24 bg-transparent border-0 text-gray-800 placeholder-gray-500 focus:outline-none text-sm"
                   value={filters.location}
-                  onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                  onChange={(e) => onChange({ ...filters, location: e.target.value })}
                 />
               </div>
               
@@ -99,7 +95,7 @@ export function SearchFilters({ onSearch }: SearchFiltersProps) {
                 placeholder="Location"
                 className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={filters.location}
-                onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                onChange={(e) => onChange({ ...filters, location: e.target.value })}
               />
             </div>
           </div>
@@ -150,7 +146,7 @@ export function SearchFilters({ onSearch }: SearchFiltersProps) {
                         name="rating"
                         value={rating}
                         checked={filters.minRating === rating}
-                        onChange={(e) => setFilters({ ...filters, minRating: parseInt(e.target.value) })}
+                        onChange={(e) => onChange({ ...filters, minRating: parseInt(e.target.value) })}
                         className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                       />
                       <div className="flex items-center gap-1">
@@ -185,7 +181,7 @@ export function SearchFilters({ onSearch }: SearchFiltersProps) {
                   max="200"
                   step="5"
                   value={filters.maxPrice}
-                  onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) })}
+                  onChange={(e) => onChange({ ...filters, maxPrice: parseInt(e.target.value) })}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">

@@ -15,9 +15,9 @@ export default function BookingConfirmationPage() {
   const tutorId = searchParams.get('tutorId');
   const date = searchParams.get('date');
   const time = searchParams.get('time');
-  const subject = searchParams.get('subject');
+  const subjectId = searchParams.get('subjectId');
 
-  if (!tutorId || !date || !time || !subject) {
+  if (!tutorId || !date || !time || !subjectId) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -25,7 +25,7 @@ export default function BookingConfirmationPage() {
           <p className="mt-2 text-gray-600">Please try booking again.</p>
           <button
             onClick={() => router.push('/search')}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Back to Search
           </button>
@@ -36,7 +36,7 @@ export default function BookingConfirmationPage() {
 
   const handleConfirm = async () => {
     if (!session) {
-      router.push('/login');
+      router.push('/auth/login');
       return;
     }
 
@@ -52,7 +52,7 @@ export default function BookingConfirmationPage() {
           date,
           startTime: time,
           endTime: addHour(time), // Assuming 1-hour sessions
-          subject,
+          subjectId,
         }),
       });
 
@@ -73,13 +73,13 @@ export default function BookingConfirmationPage() {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-2xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Confirm Your Booking</h1>
+           <h1 className="text-2xl font-bold text-gray-900 mb-6">Submit Proposal</h1>
 
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
               <Calendar className="w-5 h-5 text-gray-400 mt-1" />
               <div>
-                <p className="text-sm text-gray-500">Date</p>
+                 <p className="text-sm text-gray-500">Start Date</p>
                 <p className="text-gray-900">{formatDate(date)}</p>
               </div>
             </div>
@@ -87,7 +87,7 @@ export default function BookingConfirmationPage() {
             <div className="flex items-start space-x-3">
               <Clock className="w-5 h-5 text-gray-400 mt-1" />
               <div>
-                <p className="text-sm text-gray-500">Time</p>
+                 <p className="text-sm text-gray-500">Session Time</p>
                 <p className="text-gray-900">{time} - {addHour(time)}</p>
               </div>
             </div>
@@ -96,7 +96,7 @@ export default function BookingConfirmationPage() {
               <BookOpen className="w-5 h-5 text-gray-400 mt-1" />
               <div>
                 <p className="text-sm text-gray-500">Subject</p>
-                <p className="text-gray-900">{subject}</p>
+                <p className="text-gray-900">{subjectId}</p>
               </div>
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function BookingConfirmationPage() {
             <button
               onClick={handleConfirm}
               disabled={isLoading}
-              className="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Confirming...' : 'Confirm Booking'}
             </button>

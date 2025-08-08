@@ -22,7 +22,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login');
+      router.push('/auth/login');
     } else if (status === 'authenticated') {
       fetchDashboardStats();
     }
@@ -62,7 +62,7 @@ export default function DashboardPage() {
           <p className="text-red-600">{error}</p>
           <button
             onClick={fetchDashboardStats}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Try Again
           </button>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
             <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
             <button
               onClick={() => router.push('/bookings')}
-              className="text-primary hover:text-primary/90"
+              className="text-blue-600 hover:text-blue-700"
             >
               View All
             </button>

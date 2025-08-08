@@ -82,8 +82,8 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-6 border-b">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
+          <div className="p-6 border-b border-gray-100">
             <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
             <div className="mt-4 relative">
               <input
@@ -91,15 +91,15 @@ export default function MessagesPage() {
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
               />
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
           </div>
 
-          <div className="divide-y">
+          <div className="divide-y divide-gray-100">
             {filteredConversations.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
+              <div className="p-10 text-center text-gray-500">
                 No conversations found
               </div>
             ) : (
@@ -119,13 +119,13 @@ export default function MessagesPage() {
                       </p>
                     </div>
                     {conversation.unreadCount > 0 && (
-                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white">
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white">
                         {conversation.unreadCount}
                       </span>
                     )}
                   </div>
                   <div className="mt-2">
-                    <p className="text-sm text-gray-600 truncate">
+                    <p className="text-sm text-gray-700 truncate">
                       {conversation.lastMessage.content}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">

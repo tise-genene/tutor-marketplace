@@ -33,7 +33,7 @@ export default function BookingsPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login');
+      router.push('/auth/login');
     } else if (status === 'authenticated') {
       fetchBookings();
     }
@@ -81,7 +81,7 @@ export default function BookingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading bookings...</p>
         </div>
       </div>
@@ -95,7 +95,7 @@ export default function BookingsPage() {
           <p className="text-red-600">{error}</p>
           <button
             onClick={fetchBookings}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Try Again
           </button>
@@ -114,7 +114,7 @@ export default function BookingsPage() {
             <p className="text-gray-600">No bookings found</p>
             <button
               onClick={() => router.push('/search')}
-              className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Find a Tutor
             </button>

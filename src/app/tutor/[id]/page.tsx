@@ -118,72 +118,39 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-16">
+      <section className="bg-white border-b">
         <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              {/* Profile Image */}
-              <div className="relative">
-                <div className="w-32 h-32 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <span className="text-4xl font-bold text-white">
-                    {tutor.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
+          <div className="max-w-6xl mx-auto py-8 flex flex-col md:flex-row items-start gap-6">
+            {/* Avatar */}
+            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center text-3xl font-bold text-gray-700">
+              {tutor.name.charAt(0).toUpperCase()}
+            </div>
+            {/* Header Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-extrabold text-gray-900">{tutor.name}</h1>
                 {tutor.tutorProfile.isVerified && (
-                  <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2">
-                    <Shield className="w-4 h-4 text-white" />
-                  </div>
+                  <span className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
+                    <Shield className="w-3 h-3" /> Verified
+                  </span>
                 )}
               </div>
-
-              {/* Profile Info */}
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                  <h1 className="text-4xl font-bold">{tutor.name}</h1>
-                  {tutor.tutorProfile.isVerified && (
-                    <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                      Verified
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((value) => (
-                      <Star
-                        key={value}
-                        className={`w-5 h-5 ${
-                          value <= averageRating
-                            ? 'text-yellow-400 fill-current'
-                            : 'text-white/30'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-blue-100">
-                    {averageRating.toFixed(1)} ({tutor.reviews.length} reviews)
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-blue-100">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{tutor.tutorProfile.location}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Briefcase className="w-4 h-4" />
-                    <span>{tutor.tutorProfile.experience} years experience</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="w-4 h-4" />
-                    <span>{tutor.tutorProfile.subjects.length} subjects</span>
-                  </div>
-                </div>
-
-                <div className="mt-6 text-3xl font-bold">
-                  ${tutor.tutorProfile.hourlyRate}/hour
-                </div>
+              <div className="mt-2 flex flex-wrap items-center gap-4 text-gray-600">
+                <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-gray-400" /> {tutor.tutorProfile.location}</span>
+                <span className="inline-flex items-center gap-1"><Briefcase className="w-4 h-4 text-gray-400" /> {tutor.tutorProfile.experience} years</span>
+                <span className="inline-flex items-center gap-1"><BookOpen className="w-4 h-4 text-blue-500" /> {tutor.tutorProfile.subjects.length} subjects</span>
               </div>
+              <div className="mt-3 flex items-center gap-2">
+                {[1,2,3,4,5].map((v) => (
+                  <Star key={v} className={`w-5 h-5 ${v <= averageRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                ))}
+                <span className="text-sm text-gray-600">{averageRating.toFixed(1)} ({tutor.reviews.length} reviews)</span>
+              </div>
+            </div>
+            {/* Rate & Hire */}
+            <div className="text-right">
+              <div className="text-3xl font-extrabold text-gray-900">${tutor.tutorProfile.hourlyRate}<span className="text-base text-gray-500 font-normal">/hr</span></div>
+              <button onClick={handleBookSession} className="mt-3 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold">Hire</button>
             </div>
           </div>
         </div>
@@ -316,10 +283,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
       )}
 
       {showChat && (
-        <Chat
-          recipientId={params.id}
-          onClose={() => setShowChat(false)}
-        />
+        <Chat recipientId={params.id} receiverName={tutor.name} onClose={() => setShowChat(false)} />
       )}
     </div>
   );

@@ -14,11 +14,15 @@ interface Message {
 }
 
 interface ChatProps {
-  receiverId: string;
-  receiverName: string;
+  receiverId?: string;
+  recipientId?: string; // legacy prop name support
+  receiverName?: string;
+  onClose?: () => void;
 }
 
-export default function Chat({ receiverId, receiverName }: ChatProps) {
+export default function Chat({ receiverId, recipientId, receiverName, onClose }: ChatProps) {
+  // Backward compatibility: prefer receiverId, fallback to recipientId
+  const effectiveReceiverId = receiverId ?? recipientId ?? '';
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -36,7 +40,7 @@ export default function Chat({ receiverId, receiverName }: ChatProps) {
         wsRef.current.close();
       }
     };
-  }, [receiverId]);
+  }, [effectiveReceiverId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -68,7 +72,7 @@ export default function Chat({ receiverId, receiverName }: ChatProps) {
 
   const fetchMessages = async () => {
     try {
-      const response = await fetch(`/api/messages?receiverId=${receiverId}`);
+      const response = await fetch(`/api/messages?receiverId=${effectiveReceiverId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch messages');
       }
@@ -94,7 +98,7 @@ export default function Chat({ receiverId, receiverName }: ChatProps) {
         },
         body: JSON.stringify({
           content: newMessage,
-          receiverId,
+           receiverId: effectiveReceiverId,
         }),
       });
 
@@ -123,7 +127,7 @@ export default function Chat({ receiverId, receiverName }: ChatProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -134,7 +138,7 @@ export default function Chat({ receiverId, receiverName }: ChatProps) {
         <p className="text-red-600">{error}</p>
         <button
           onClick={fetchMessages}
-          className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           Try Again
         </button>
@@ -163,7 +167,7 @@ export default function Chat({ receiverId, receiverName }: ChatProps) {
             <div
               className={`max-w-[70%] rounded-lg p-3 ${
                 message.senderId === session?.user?.id
-                  ? 'bg-primary text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-900'
               }`}
             >
@@ -190,12 +194,12 @@ export default function Chat({ receiverId, receiverName }: ChatProps) {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
           />
           <button
             type="submit"
             disabled={!newMessage.trim()}
-            className="bg-primary text-white p-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </button>

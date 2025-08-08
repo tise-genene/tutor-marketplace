@@ -28,7 +28,7 @@ export function Navigation() {
               </Link>
               {session?.user?.role === 'TUTOR' && (
                 <Link
-                  href="/tutor/dashboard"
+                  href="/dashboard"
                   className="text-gray-700 hover:text-purple-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-purple-50"
                 >
                   Dashboard
