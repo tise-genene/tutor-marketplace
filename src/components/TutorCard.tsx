@@ -80,7 +80,7 @@ export function TutorCard({
                 <Link href={`/tutor/${id}`} className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-xl font-semibold hover:bg-blue-50">
                   View Profile
                 </Link>
-                <Link href={`/tutor/${id}/book`} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700">
+                <Link href={`/tutor/${id}/hire`} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700">
                   Hire
                 </Link>
               </div>
@@ -194,7 +194,7 @@ export function TutorCard({
               View Profile
             </Link>
             <Link 
-              href={`/tutor/${id}/book`}
+              href={`/tutor/${id}/hire`}
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 group-hover:shadow-lg text-center"
             >
               Hire

@@ -42,7 +42,7 @@ export default function BookingConfirmationPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/bookings', {
+      const response = await fetch('/api/proposals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export default function BookingConfirmationPage() {
         throw new Error('Failed to create booking');
       }
 
-      router.push('/bookings');
+      router.push('/proposals');
     } catch (error) {
       console.error('Booking error:', error);
       // Handle error (show toast notification)
@@ -107,7 +107,7 @@ export default function BookingConfirmationPage() {
               disabled={isLoading}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Confirming...' : 'Confirm Booking'}
+              {isLoading ? 'Sending...' : 'Send Proposal'}
             </button>
 
             <button

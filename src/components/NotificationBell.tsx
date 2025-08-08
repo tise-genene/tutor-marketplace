@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 
 interface Notification {
   id: string;
-  type: 'NEW_MESSAGE' | 'NEW_REVIEW' | 'BOOKING_REQUEST' | 'BOOKING_CONFIRMED' | 'BOOKING_CANCELLED';
+  type: 'NEW_MESSAGE' | 'NEW_REVIEW' | 'PROPOSAL_SUBMITTED' | 'PROPOSAL_CONFIRMED' | 'PROPOSAL_CANCELLED';
   message: string;
   read: boolean;
   createdAt: string;
@@ -78,10 +78,10 @@ export default function NotificationBell() {
       case 'NEW_REVIEW':
         window.location.href = `/tutor/${notification.relatedId}`;
         break;
-      case 'BOOKING_REQUEST':
-      case 'BOOKING_CONFIRMED':
-      case 'BOOKING_CANCELLED':
-        window.location.href = `/bookings/${notification.relatedId}`;
+      case 'PROPOSAL_SUBMITTED':
+      case 'PROPOSAL_CONFIRMED':
+      case 'PROPOSAL_CANCELLED':
+        window.location.href = `/proposals`;
         break;
     }
   };

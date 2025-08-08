@@ -107,11 +107,11 @@ export default function BookingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">My Bookings</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">My Proposals</h1>
 
         {bookings.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-600">No bookings found</p>
+            <p className="text-gray-600">No proposals found</p>
             <button
               onClick={() => router.push('/search')}
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -213,7 +213,7 @@ export default function BookingsPage() {
                     onClick={() => handleStatusUpdate(booking.id, 'CANCELLED')}
                     className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
                   >
-                    Cancel Booking
+                    Cancel Proposal
                   </button>
                 )}
               </div>

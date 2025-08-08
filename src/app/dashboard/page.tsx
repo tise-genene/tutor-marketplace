@@ -90,7 +90,7 @@ export default function DashboardPage() {
                 <Calendar className="w-6 h-6" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Bookings</p>
+                <p className="text-sm font-medium text-gray-500">Total Proposals</p>
                 <p className="text-2xl font-semibold text-gray-900">
                   {stats?.totalBookings || 0}
                 </p>
@@ -161,17 +161,17 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
             <button
-              onClick={() => router.push('/bookings')}
+              onClick={() => router.push('/proposals')}
               className="text-blue-600 hover:text-blue-700"
             >
-              View All
+              View All Proposals
             </button>
           </div>
 
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="p-6">
               <p className="text-gray-600 text-center">
-                Your recent bookings and activities will appear here
+                Your recent proposals and activities will appear here
               </p>
             </div>
           </div>

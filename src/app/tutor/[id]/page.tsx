@@ -65,7 +65,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
   };
 
   const handleBookSession = () => {
-    router.push(`/tutor/${params.id}/book`);
+    router.push(`/tutor/${params.id}/hire`);
   };
 
   const handleReviewSubmit = () => {
@@ -229,7 +229,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                 >
                   <Calendar className="w-5 h-5" />
-                  Book Session
+                  Hire
                 </button>
 
                 {session && (
