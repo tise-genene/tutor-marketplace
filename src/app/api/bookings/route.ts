@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { createBookingSchema } from '@/lib/validations/bookings';
 import { validateRequestBody } from '@/lib/validate-request';
 import { apiSuccess, ApiErrors } from '@/lib/api-response';
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
       },
       include: {
-        tutor: { select: { id: true, name: true, tutorProfile: { select: { hourlyRate: true } } } },
+        tutor: { select: { id: true, name: true } },
         student: { select: { id: true, name: true } },
       },
     });
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
         ],
       },
       include: {
-        tutor: { select: { id: true, name: true, tutorProfile: { select: { hourlyRate: true } } } },
+        tutor: { select: { id: true, name: true } },
         student: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },

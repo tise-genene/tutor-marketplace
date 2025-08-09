@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 interface DashboardStats {
   totalBookings: number;
@@ -41,13 +41,6 @@ export async function GET() {
           { tutorId: user.id },
         ],
       },
-      include: {
-        tutor: {
-          include: {
-            tutorProfile: true,
-          },
-        },
-      },
     });
 
     // Calculate statistics
@@ -72,10 +65,7 @@ export async function GET() {
       // Calculate total earnings
       const totalEarnings = bookings
         .filter((booking) => booking.status === 'COMPLETED')
-        .reduce((sum: number, booking) => {
-          const hourlyRate = booking.tutor.tutorProfile?.hourlyRate || 0;
-          return sum + hourlyRate;
-        }, 0);
+        .reduce((sum: number, booking) => sum + (booking.hourlyRate ?? 0), 0);
 
       stats.totalEarnings = totalEarnings;
     } else {

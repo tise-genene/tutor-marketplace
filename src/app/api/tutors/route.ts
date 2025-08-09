@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
 
     const { 
       query, subjectIds, minRate, maxRate, location, 
-      minRating, verified, page, limit, sortBy 
-    } = validation.data;
+      minRating, verified, page = 1, limit = 12, sortBy 
+    } = validation.data as any;
 
     const skip = (page - 1) * limit;
     

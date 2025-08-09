@@ -23,7 +23,11 @@ export default function NotificationBell() {
     if (session?.user) {
       fetchNotifications();
       // Set up WebSocket connection for real-time notifications
-      const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/notifications`);
+      const wsBase = process.env.NEXT_PUBLIC_WS_URL;
+      if (!wsBase) {
+        return;
+      }
+      const ws = new WebSocket(`${wsBase}/notifications`);
       
       ws.onmessage = (event) => {
         const notification = JSON.parse(event.data);

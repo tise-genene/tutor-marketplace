@@ -87,12 +87,11 @@ const mockTutors = {
   }
 };
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   return withApiHandler(async (req) => {
-    const tutorId = params.id;
+    const url = new URL(request.url);
+    const segments = url.pathname.split('/').filter(Boolean);
+    const tutorId = segments[segments.length - 1];
     
     const tutor = mockTutors[tutorId as keyof typeof mockTutors];
     

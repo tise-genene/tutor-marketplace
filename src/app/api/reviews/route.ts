@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { createReviewSchema, getReviewsSchema } from '@/lib/validations/reviews';
 import { validateRequestBody, validateQuery } from '@/lib/validate-request';
 import { apiSuccess, ApiErrors } from '@/lib/api-response';
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const validation = validateQuery(req.nextUrl.searchParams, getReviewsSchema);
     if (!validation.success) return validation.error;
 
-    const { tutorId, page, limit } = validation.data;
+    const { tutorId, page = 1, limit = 10 } = validation.data as any;
     const skip = (page - 1) * limit;
 
     const [reviews, total] = await Promise.all([

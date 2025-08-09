@@ -47,7 +47,11 @@ export default function Chat({ receiverId, recipientId, receiverName, onClose }:
   }, [messages]);
 
   const setupWebSocket = () => {
-    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/chat`);
+    const wsBase = process.env.NEXT_PUBLIC_WS_URL;
+    if (!wsBase) {
+      return;
+    }
+    const ws = new WebSocket(`${wsBase}/chat`);
     
     ws.onopen = () => {
       console.log('WebSocket connected');

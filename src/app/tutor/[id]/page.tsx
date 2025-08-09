@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Star, Calendar, MapPin, BookOpen, GraduationCap, Briefcase, MessageCircle, Shield, Clock } from 'lucide-react';
 import ReviewForm from '@/components/ReviewForm';
 import ReviewList from '@/components/ReviewList';
@@ -34,9 +34,11 @@ interface TutorProfile {
   }[];
 }
 
-export default function TutorProfilePage({ params }: { params: { id: string } }) {
+export default function TutorProfilePage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const params = useParams();
+  const tutorId = (params as any)?.id as string;
   const [tutor, setTutor] = useState<TutorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,13 +47,15 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
   const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
-    fetchTutorProfile();
-  }, [params.id]);
+    if (tutorId) {
+      fetchTutorProfile();
+    }
+  }, [tutorId]);
 
   const fetchTutorProfile = async () => {
     try {
       setError('');
-      const response = await fetch(`/api/tutors/${params.id}`);
+      const response = await fetch(`/api/tutors/${tutorId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch tutor profile');
       }
@@ -65,7 +69,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
   };
 
   const handleBookSession = () => {
-    router.push(`/tutor/${params.id}/hire`);
+    router.push(`/tutor/${tutorId}/hire`);
   };
 
   const handleReviewSubmit = () => {
@@ -207,7 +211,7 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
 
             {/* Reviews Section */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              <ReviewList tutorId={params.id} />
+              <ReviewList reviews={tutor.reviews} />
             </div>
           </div>
 
@@ -275,15 +279,14 @@ export default function TutorProfilePage({ params }: { params: { id: string } })
       {/* Modals */}
       {showReviewForm && (
         <ReviewForm
-          tutorId={params.id}
+          tutorId={tutorId}
           bookingId={selectedBookingId}
           onSubmit={handleReviewSubmit}
-          onClose={() => setShowReviewForm(false)}
         />
       )}
 
       {showChat && (
-        <Chat recipientId={params.id} receiverName={tutor.name} onClose={() => setShowChat(false)} />
+        <Chat recipientId={tutorId} receiverName={tutor.name} onClose={() => setShowChat(false)} />
       )}
     </div>
   );
