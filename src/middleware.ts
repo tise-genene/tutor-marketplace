@@ -18,6 +18,6 @@ export const config = {
     '/dashboard/:path*',
     '/tutor/:path*',
     '/profile/:path*',
-    '/bookings/:path*',
+    '/proposals/:path*',
   ],
 }; 

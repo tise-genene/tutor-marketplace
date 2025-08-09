@@ -3,6 +3,25 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '../auth/[...nextauth]/route';
 
+// Map persisted booking-style enums to proposal-style enums for client display
+const bookingToProposalType: Record<string, string> = {
+  BOOKING_REQUEST: 'PROPOSAL_SUBMITTED',
+  BOOKING_CONFIRMED: 'PROPOSAL_CONFIRMED',
+  BOOKING_CANCELLED: 'PROPOSAL_CANCELLED',
+};
+
+// Accept proposal-style enums and normalize to persisted booking-style enums
+const proposalToBookingType: Record<string, string> = {
+  PROPOSAL_SUBMITTED: 'BOOKING_REQUEST',
+  PROPOSAL_CONFIRMED: 'BOOKING_CONFIRMED',
+  PROPOSAL_CANCELLED: 'BOOKING_CANCELLED',
+};
+
+function replaceBookingCopy(message: string): string {
+  // Replace 'booking'/'bookings' with 'proposal'/'proposals' (case-insensitive, word-boundary)
+  return message.replace(/\bbooking(s)?\b/gi, (_match, plural) => `proposal${plural ? 's' : ''}`);
+}
+
 // GET /api/notifications - Get user notifications
 export async function GET(request: Request) {
   try {
@@ -56,8 +75,15 @@ export async function GET(request: Request) {
       }),
     ]);
 
+    // Transform types/messages for client without changing persisted values
+    const transformed = notifications.map((n) => ({
+      ...n,
+      type: bookingToProposalType[n.type as string] || n.type,
+      message: replaceBookingCopy(n.message),
+    }));
+
     return NextResponse.json({
-      notifications,
+      notifications: transformed,
       pagination: {
         page,
         limit,
@@ -88,16 +114,26 @@ export async function POST(request: Request) {
       );
     }
 
+    // Normalize proposal-style enum to booking-style enum for persistence
+    const normalizedType = proposalToBookingType[type] || type;
+
     const notification = await prisma.notification.create({
       data: {
         userId,
-        type,
+        type: normalizedType as any,
         message,
         relatedId: relatedId || null,
       },
     });
 
-    return NextResponse.json(notification, { status: 201 });
+    // Return transformed response for client
+    const clientNotification = {
+      ...notification,
+      type: bookingToProposalType[notification.type as unknown as string] || (notification.type as any),
+      message: replaceBookingCopy(notification.message),
+    };
+
+    return NextResponse.json(clientNotification, { status: 201 });
   } catch (error) {
     console.error('Error creating notification:', error);
     return NextResponse.json(
