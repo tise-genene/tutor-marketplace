@@ -59,8 +59,8 @@ export default function TutorProfilePage() {
       if (!response.ok) {
         throw new Error('Failed to fetch tutor profile');
       }
-      const data = await response.json();
-      setTutor(data);
+      const payload = await response.json();
+      setTutor(payload.data ?? payload);
     } catch (err: any) {
       setError(err.message);
     } finally {
