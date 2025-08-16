@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -85,7 +85,7 @@ model TutorProfile {
   userId      String    @unique
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio         String?
-  education   String    // JSON string for SQLite compatibility
+  education   String[]  // Array of education items
   experience  Int       @default(0)
   location    String
   availability Json     // Store availability as JSON
