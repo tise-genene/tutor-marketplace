@@ -157,8 +157,17 @@ model Review {
 model Message {
   id        String   @id @default(cuid())
   content   String
+  type      MessageType @default(TEXT)
   createdAt DateTime @default(now())
   read      Boolean  @default(false)
+  
+  // File message fields
+  fileName    String?
+  fileType    String?
+  fileUrl     String?
+  
+  // Voice message fields
+  voiceDuration Float?
   
   senderId  String
   sender    User     @relation("SentMessages", fields: [senderId], references: [id])
@@ -168,6 +177,7 @@ model Message {
 
   @@index([senderId])
   @@index([receiverId])
+  @@index([type])
 }
 
 enum Role {
@@ -183,8 +193,15 @@ enum BookingStatus {
   COMPLETED
 }
 
+enum MessageType {
+  TEXT
+  FILE
+  VOICE
+}
+
 enum NotificationType {
   NEW_MESSAGE
+  MESSAGE_RECEIVED
   NEW_REVIEW
   PROPOSAL_SUBMITTED
   PROPOSAL_CONFIRMED

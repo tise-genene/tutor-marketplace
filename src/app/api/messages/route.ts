@@ -1,144 +1,140 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
+import { withApiHandler } from '@/lib/api-middleware';
+import { apiSuccess, ApiErrors } from '@/lib/api-response';
+import { validateRequestBody } from '@/lib/validate-request';
+import { z } from 'zod';
 
-export async function POST(request: Request) {
-  try {
+const sendMessageSchema = z.object({
+  receiverId: z.string().min(1, 'Receiver ID is required'),
+  content: z.string().optional(),
+  type: z.enum(['text', 'file', 'voice'] as const).default('text'),
+  fileName: z.string().optional(),
+  fileType: z.string().optional(),
+  fileUrl: z.string().optional(),
+  voiceDuration: z.number().optional(),
+});
+
+const getMessagesSchema = z.object({
+  receiverId: z.string().min(1, 'Receiver ID is required'),
+  page: z.coerce.number().default(1),
+  limit: z.coerce.number().default(50),
+});
+
+export async function POST(request: NextRequest) {
+  return withApiHandler(async (req) => {
     const session = await getServerSession(authOptions);
+    if (!session?.user) return ApiErrors.UNAUTHORIZED();
 
-    if (!session) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const user = await prisma.user.findUnique({ where: { email: session.user.email as string } });
+    if (!user) return ApiErrors.NOT_FOUND('User');
 
-    const { content, receiverId } = await request.json();
+    const validation = await validateRequestBody(req, sendMessageSchema);
+    if (!validation.success) return validation.error;
 
-    if (!content || !receiverId) {
-      return NextResponse.json(
-        { message: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
+    const { receiverId, content, type, fileName, fileType, fileUrl, voiceDuration } = validation.data;
 
-    // Get the sender
-    const sender = await prisma.user.findUnique({
-      where: { email: session.user?.email as string },
-    });
+    // Verify receiver exists
+    const receiver = await prisma.user.findUnique({ where: { id: receiverId } });
+    if (!receiver) return ApiErrors.NOT_FOUND('Receiver');
 
-    if (!sender) {
-      return NextResponse.json(
-        { message: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Get the receiver
-    const receiver = await prisma.user.findUnique({
-      where: { id: receiverId },
-    });
-
-    if (!receiver) {
-      return NextResponse.json(
-        { message: 'Receiver not found' },
-        { status: 404 }
-      );
-    }
-
-    // Create the message
+    // Create message
     const message = await prisma.message.create({
       data: {
-        content,
-        senderId: sender.id,
-        receiverId: receiver.id,
+        senderId: user.id,
+        receiverId,
+        content: content || '',
+        type,
+        fileName,
+        fileType,
+        fileUrl,
+        voiceDuration,
+      },
+      include: {
+        sender: { select: { id: true, name: true } },
+        receiver: { select: { id: true, name: true } },
       },
     });
 
-    return NextResponse.json(message, { status: 201 });
-  } catch (error) {
-    console.error('Message creation error:', error);
-    return NextResponse.json(
-      { message: 'Something went wrong' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-    const receiverId = searchParams.get('receiverId');
-
-    if (!receiverId) {
-      return NextResponse.json(
-        { message: 'Receiver ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user?.email as string },
+    // Create notification for receiver
+    await prisma.notification.create({
+      data: {
+        userId: receiverId,
+        type: 'MESSAGE_RECEIVED',
+        title: 'New Message',
+        message: `You have a new message from ${user.name}`,
+        data: { messageId: message.id, senderId: user.id },
+      },
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { message: 'User not found' },
-        { status: 404 }
-      );
-    }
+    return apiSuccess(message, 201);
+  }, request);
+}
+
+export async function GET(request: NextRequest) {
+  return withApiHandler(async (req) => {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return ApiErrors.UNAUTHORIZED();
+
+    const user = await prisma.user.findUnique({ where: { email: session.user.email as string } });
+    if (!user) return ApiErrors.NOT_FOUND('User');
+
+    const validation = await validateQuery(req, getMessagesSchema);
+    if (!validation.success) return validation.error;
+
+    const { receiverId, page, limit } = validation.data;
+    const skip = (page - 1) * limit;
 
     // Get messages between the two users
     const messages = await prisma.message.findMany({
       where: {
         OR: [
-          {
-            AND: [
-              { senderId: user.id },
-              { receiverId },
-            ],
-          },
-          {
-            AND: [
-              { senderId: receiverId },
-              { receiverId: user.id },
-            ],
-          },
+          { senderId: user.id, receiverId },
+          { senderId: receiverId, receiverId: user.id },
         ],
       },
-      orderBy: {
-        createdAt: 'asc',
+      include: {
+        sender: { select: { id: true, name: true } },
+        receiver: { select: { id: true, name: true } },
       },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
     });
 
-    // Mark unread messages as read
-    await prisma.message.updateMany({
+    const total = await prisma.message.count({
       where: {
-        senderId: receiverId,
-        receiverId: user.id,
-        read: false,
-      },
-      data: {
-        read: true,
+        OR: [
+          { senderId: user.id, receiverId },
+          { senderId: receiverId, receiverId: user.id },
+        ],
       },
     });
 
-    return NextResponse.json({ messages });
+    return apiSuccess({
+      messages: messages.reverse(), // Show oldest first
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  }, request);
+}
+
+async function validateQuery(req: NextRequest, schema: z.ZodSchema) {
+  try {
+    const url = new URL(req.url);
+    const query = Object.fromEntries(url.searchParams.entries());
+    const validated = schema.parse(query);
+    return { success: true as const, data: validated };
   } catch (error) {
-    console.error('Error fetching messages:', error);
-    return NextResponse.json(
-      { message: 'Something went wrong' },
-      { status: 500 }
-    );
+    if (error instanceof z.ZodError) {
+      return { success: false as const, error: ApiErrors.VALIDATION_ERROR(error) };
+    }
+    return { success: false as const, error: ApiErrors.INTERNAL_ERROR() };
   }
 } 
