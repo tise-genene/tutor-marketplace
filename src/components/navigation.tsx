@@ -1,13 +1,51 @@
 'use client';
 
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { Menu, Transition } from '@headlessui/react';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
+import { Bell, Calendar } from 'lucide-react';
+import NotificationCenter from './NotificationCenter';
 
 export function Navigation() {
   const { data: session } = useSession();
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([
+    {
+      id: '1',
+      title: 'New Message',
+      message: 'Sarah Johnson sent you a message about your math tutoring session.',
+      type: 'info' as const,
+      category: 'message' as const,
+      read: false,
+      createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+      actionUrl: '/messages',
+      actionText: 'View Message',
+    },
+    {
+      id: '2',
+      title: 'Session Reminder',
+      message: 'You have a physics tutoring session in 1 hour.',
+      type: 'warning' as const,
+      category: 'reminder' as const,
+      read: false,
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      actionUrl: '/calendar',
+      actionText: 'View Calendar',
+    },
+    {
+      id: '3',
+      title: 'Payment Received',
+      message: 'Payment of $50.00 has been received for your tutoring session.',
+      type: 'success' as const,
+      category: 'payment' as const,
+      read: true,
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+      actionUrl: '/dashboard',
+      actionText: 'View Details',
+    },
+  ]);
 
   return (
     <nav className="bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100 sticky top-0 z-50">
@@ -46,11 +84,36 @@ export function Navigation() {
               >
                 Proposals
               </Link>
+              <Link
+                href="/calendar"
+                className="text-gray-700 hover:text-green-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-green-50"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Calendar
+              </Link>
             </div>
           </div>
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+          <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
+            {session && (
+              <>
+                {/* Notification Bell */}
+                <div className="relative">
+                  <button
+                    onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                    className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <Bell className="w-6 h-6" />
+                    {notifications.filter(n => !n.read).length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {notifications.filter(n => !n.read).length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
             {session ? (
-              <Menu as="div" className="ml-3 relative">
+              <Menu as="div" className="relative">
                 <div>
                   <Menu.Button className="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <span className="sr-only">Open user menu</span>
@@ -113,6 +176,24 @@ export function Navigation() {
           </div>
         </div>
       </div>
+      
+      {/* Notification Center */}
+      <NotificationCenter
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        onMarkAsRead={(id) => {
+          setNotifications(prev => 
+            prev.map(n => n.id === id ? { ...n, read: true } : n)
+          );
+        }}
+        onMarkAllAsRead={() => {
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        }}
+        onDelete={(id) => {
+          setNotifications(prev => prev.filter(n => n.id !== id));
+        }}
+      />
     </nav>
   );
 } 
