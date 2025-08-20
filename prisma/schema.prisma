@@ -30,6 +30,8 @@ model User {
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
   notifications   Notification[]
+  tutorEvents      CalendarEvent[] @relation("TutorEvents")
+  studentEvents    CalendarEvent[] @relation("StudentEvents")
 }
 
 // New Subject model for proper relationships
@@ -44,6 +46,7 @@ model Subject {
   tutorSubjects    TutorSubject[]
   studentSubjects  StudentSubject[]
   bookings         Booking[]
+  calendarEvents   CalendarEvent[]
   
   @@index([category])
   @@index([name])
@@ -131,6 +134,9 @@ model Booking {
   hourlyRate  Float     // Rate at time of booking
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  calendarEvents CalendarEvent[]
   
   @@index([studentId])
   @@index([tutorId])
@@ -221,4 +227,56 @@ model Notification {
   relatedId String?  // ID of the related entity (message, review, etc.)
   
   @@index([userId])
+}
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  type        CalendarEventType
+  status      CalendarEventStatus @default(PENDING)
+  location    String?  // For in-person sessions
+  meetingUrl  String?  // For online sessions
+  
+  // Relations
+  tutorId     String?
+  tutor       User?    @relation("TutorEvents", fields: [tutorId], references: [id])
+  studentId   String?
+  student     User?    @relation("StudentEvents", fields: [studentId], references: [id])
+  subjectId   String?
+  subject     Subject? @relation(fields: [subjectId], references: [id])
+  bookingId   String?  // Link to booking if this is a session
+  booking     Booking? @relation(fields: [bookingId], references: [id])
+  
+  // Metadata
+  isRecurring Boolean  @default(false)
+  recurrenceRule String? // RRULE format for recurring events
+  color       String?  // Custom color for the event
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([tutorId])
+  @@index([studentId])
+  @@index([subjectId])
+  @@index([startTime])
+  @@index([endTime])
+  @@index([type])
+  @@index([status])
+}
+
+enum CalendarEventType {
+  SESSION
+  AVAILABILITY
+  REMINDER
+  CUSTOM
+}
+
+enum CalendarEventStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
 }

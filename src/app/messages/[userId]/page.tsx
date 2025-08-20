@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import EnhancedChat from '@/components/EnhancedChat';
+import RealTimeChat from '@/components/RealTimeChat';
 
 interface Message {
   id: string;
@@ -197,12 +197,9 @@ export default function IndividualMessagePage() {
 
       {/* Chat */}
       <div className="max-w-4xl mx-auto h-[calc(100vh-80px)] p-4">
-        <EnhancedChat
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          currentUserId={session?.user?.id || ''}
-          otherUserId={otherUserId}
-          otherUserName={otherUser.name}
+        <RealTimeChat
+          receiverId={otherUser.id}
+          receiverName={otherUser.name}
           className="h-full"
         />
       </div>

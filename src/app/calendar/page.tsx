@@ -35,59 +35,51 @@ export default function CalendarPage() {
 
   const fetchCalendarEvents = async () => {
     try {
-      // In a real app, you'd fetch from your API
-      // For now, we'll use mock data
-      const mockEvents: CalendarEvent[] = [
-        {
-          id: '1',
-          title: 'Math Tutoring - Algebra',
-          start: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
-          end: new Date(Date.now() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
-          backgroundColor: '#10B981',
-          borderColor: '#10B981',
-          extendedProps: {
-            type: 'session',
-            tutorId: 'tutor-1',
-            studentId: session?.user?.id,
-            subject: 'Mathematics',
-            status: 'confirmed',
-          },
+      const response = await fetch('/api/calendar');
+      if (!response.ok) throw new Error('Failed to fetch events');
+      
+      const data = await response.json();
+      
+      // Transform database events to calendar format
+      const calendarEvents: CalendarEvent[] = data.data.events.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        start: event.startTime,
+        end: event.endTime,
+        backgroundColor: event.color || getEventColor(event.type, event.status),
+        borderColor: event.color || getEventColor(event.type, event.status),
+        extendedProps: {
+          type: event.type.toLowerCase(),
+          tutorId: event.tutorId,
+          studentId: event.studentId,
+          subject: event.subject?.name,
+          status: event.status.toLowerCase(),
+          description: event.description,
+          location: event.location,
+          meetingUrl: event.meetingUrl,
         },
-        {
-          id: '2',
-          title: 'Physics Review',
-          start: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Day after tomorrow
-          end: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 90 * 60 * 1000).toISOString(),
-          backgroundColor: '#F59E0B',
-          borderColor: '#F59E0B',
-          extendedProps: {
-            type: 'session',
-            tutorId: 'tutor-2',
-            studentId: session?.user?.id,
-            subject: 'Physics',
-            status: 'pending',
-          },
-        },
-        {
-          id: '3',
-          title: 'Available for Tutoring',
-          start: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          end: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
-          backgroundColor: '#3B82F6',
-          borderColor: '#3B82F6',
-          extendedProps: {
-            type: 'availability',
-            tutorId: session?.user?.id,
-            subject: 'All Subjects',
-          },
-        },
-      ];
+      }));
 
-      setEvents(mockEvents);
+      setEvents(calendarEvents);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching calendar events:', error);
       setIsLoading(false);
+    }
+  };
+
+  const getEventColor = (type: string, status?: string) => {
+    switch (type) {
+      case 'SESSION':
+        return status === 'CONFIRMED' ? '#10B981' : '#F59E0B';
+      case 'AVAILABILITY':
+        return '#3B82F6';
+      case 'REMINDER':
+        return '#8B5CF6';
+      case 'CUSTOM':
+        return '#6B7280';
+      default:
+        return '#6B7280';
     }
   };
 
