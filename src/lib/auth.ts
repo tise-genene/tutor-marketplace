@@ -17,31 +17,34 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Please enter an email and password');
         }
 
-        // For now, let's create a simple auth that works with Supabase
-        // In production, you'd want to use Supabase Auth directly
-        const { data: user, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', credentials.email)
-          .single();
+        try {
+          // Get user from Supabase
+          const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', credentials.email.toLowerCase())
+            .single();
 
-        if (error || !user) {
-          throw new Error('No user found with this email');
+          if (error || !user) {
+            throw new Error('No user found with this email');
+          }
+
+          // Verify password
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isPasswordValid) {
+            throw new Error('Invalid password');
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          } as any;
+        } catch (error) {
+          console.error('Auth error:', error);
+          throw error;
         }
-
-        // For demo purposes, let's assume password is valid
-        // In production, you'd want proper password hashing
-        // const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-        // if (!isPasswordValid) {
-        //   throw new Error('Invalid password');
-        // }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        } as any;
       },
     }),
   ],
