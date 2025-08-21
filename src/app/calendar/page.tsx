@@ -5,6 +5,7 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 const localizer = momentLocalizer(moment);
 
@@ -39,15 +40,41 @@ interface CalendarEventFormatted {
 }
 
 export default function CalendarPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [events, setEvents] = useState<CalendarEventFormatted[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Authentication guard
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/login');
+      return;
+    }
+  }, [status, router]);
 
   useEffect(() => {
     if (session?.user?.id) {
       fetchCalendarEvents();
     }
   }, [session?.user?.id]);
+
+  // Show loading while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (status === 'unauthenticated') {
+    return null;
+  }
 
   const fetchCalendarEvents = async () => {
     try {

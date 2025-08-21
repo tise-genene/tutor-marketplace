@@ -58,39 +58,46 @@ export function Navigation() {
               </Link>
             </div>
             <div className="hidden md:ml-10 md:flex md:space-x-8">
-              <Link
-                href="/search"
-                className="text-gray-700 hover:text-blue-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-blue-50"
-              >
-                Find Tutors
-              </Link>
-              {session?.user?.role === 'TUTOR' && (
-                <Link
-                  href="/dashboard"
-                  className="text-gray-700 hover:text-purple-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-purple-50"
-                >
-                  Dashboard
-                </Link>
-              )}
+              {/* Public links - always visible */}
               <Link
                 href="/auth/register?role=TUTOR"
                 className="text-gray-700 hover:text-green-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-green-50"
               >
                 Become a Tutor
               </Link>
-              <Link
-                href="/proposals"
-                className="text-gray-700 hover:text-blue-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-blue-50"
-              >
-                Proposals
-              </Link>
-              <Link
-                href="/calendar"
-                className="text-gray-700 hover:text-green-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-green-50"
-              >
-                <Calendar className="w-4 h-4 mr-2" />
-                Calendar
-              </Link>
+
+              {/* Authenticated links - only show when logged in */}
+              {session && (
+                <>
+                  <Link
+                    href="/search"
+                    className="text-gray-700 hover:text-blue-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-blue-50"
+                  >
+                    Find Tutors
+                  </Link>
+                  {session.user?.role === 'TUTOR' && (
+                    <Link
+                      href="/dashboard"
+                      className="text-gray-700 hover:text-purple-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-purple-50"
+                    >
+                      Dashboard
+                    </Link>
+                  )}
+                  <Link
+                    href="/proposals"
+                    className="text-gray-700 hover:text-blue-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-blue-50"
+                  >
+                    Proposals
+                  </Link>
+                  <Link
+                    href="/calendar"
+                    className="text-gray-700 hover:text-green-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-green-50"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Calendar
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
