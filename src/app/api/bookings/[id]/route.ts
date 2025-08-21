@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 import { authOptions } from '@/lib/auth';
 
 export async function PATCH(
@@ -27,15 +27,17 @@ export async function PATCH(
     }
 
     // Get the booking
-    const booking = await prisma.booking.findUnique({
-      where: { id: params.id },
-      include: {
-        student: true,
-        tutor: true,
-      },
-    });
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        student:users!bookings_student_id_fkey(id, name, email),
+        tutor:users!bookings_tutor_id_fkey(id, name, email)
+      `)
+      .eq('id', params.id)
+      .single();
 
-    if (!booking) {
+    if (bookingError || !booking) {
       return NextResponse.json(
         { message: 'Booking not found' },
         { status: 404 }
@@ -43,11 +45,13 @@ export async function PATCH(
     }
 
     // Check if the user is authorized to update the booking
-    const user = await prisma.user.findUnique({
-      where: { email: session.user?.email as string },
-    });
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', session.user?.email)
+      .single();
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json(
         { message: 'User not found' },
         { status: 404 }
@@ -56,7 +60,7 @@ export async function PATCH(
 
     if (
       user.role === 'STUDENT' &&
-      booking.studentId !== user.id
+      booking.student_id !== user.id
     ) {
       return NextResponse.json(
         { message: 'Unauthorized to update this booking' },
@@ -66,7 +70,7 @@ export async function PATCH(
 
     if (
       user.role === 'TUTOR' &&
-      booking.tutorId !== user.id
+      booking.tutor_id !== user.id
     ) {
       return NextResponse.json(
         { message: 'Unauthorized to update this booking' },
@@ -75,26 +79,16 @@ export async function PATCH(
     }
 
     // Update the booking status
-    const updatedBooking = await prisma.booking.update({
-      where: { id: params.id },
-      data: { status },
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        tutor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
+    const { data: updatedBooking, error: updateError } = await supabase
+      .from('bookings')
+      .update({ status })
+      .eq('id', params.id)
+      .select(`
+        *,
+        student:users!bookings_student_id_fkey(id, name, email),
+        tutor:users!bookings_tutor_id_fkey(id, name, email)
+      `)
+      .single();
 
     return NextResponse.json({
       message: 'Booking updated successfully',

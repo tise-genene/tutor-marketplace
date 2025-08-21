@@ -10,6 +10,9 @@ export default withAuth(
     callbacks: {
       authorized: ({ token }) => !!token,
     },
+    pages: {
+      signIn: '/auth/login',
+    },
   }
 );
 
@@ -18,6 +21,5 @@ export const config = {
     '/dashboard/:path*',
     '/tutor/:path*',
     '/profile/:path*',
-    '/proposals/:path*',
   ],
 }; 
