@@ -1,55 +1,67 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { withApiHandler } from '@/lib/api-middleware';
-import { apiSuccess, ApiErrors } from '@/lib/api-response';
+import { supabase } from '@/lib/supabase';
+import { z } from 'zod';
+
+const uploadSchema = z.object({
+  fileName: z.string().min(1, 'File name is required'),
+  fileType: z.string().min(1, 'File type is required'),
+  bucket: z.enum(['avatars', 'documents', 'voice-messages']),
+  audioBlob: z.string().optional(), // Base64 encoded audio for voice messages
+});
 
 export async function POST(request: NextRequest) {
-  return withApiHandler(async (req) => {
+  try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) return ApiErrors.UNAUTHORIZED();
-
-    try {
-      const formData = await request.formData();
-      const file = formData.get('file') as File;
-
-      if (!file) {
-        return ApiErrors.INVALID_INPUT('No file provided');
-      }
-
-      // Validate file size (max 10MB)
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (file.size > maxSize) {
-        return ApiErrors.INVALID_INPUT('File size too large. Maximum 10MB allowed.');
-      }
-
-      // Validate file type
-      const allowedTypes = [
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-        'video/mp4', 'video/webm', 'video/ogg',
-        'audio/mpeg', 'audio/wav', 'audio/ogg',
-        'application/pdf', 'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain'
-      ];
-
-      if (!allowedTypes.includes(file.type)) {
-        return ApiErrors.INVALID_INPUT('File type not allowed');
-      }
-
-      // In a production app, you'd upload to cloud storage (AWS S3, Cloudinary, etc.)
-      // For now, we'll return a mock URL
-      const mockUrl = `https://example.com/uploads/${Date.now()}-${file.name}`;
-
-      return apiSuccess({
-        url: mockUrl,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-      });
-    } catch (error) {
-      console.error('File upload error:', error);
-      return ApiErrors.INTERNAL_ERROR();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-  }, request);
+
+    const body = await request.json();
+    const validatedData = uploadSchema.parse(body);
+
+    let fileBuffer: Buffer;
+    let contentType: string;
+
+    if (validatedData.audioBlob) {
+      // Handle audio blob (base64)
+      const base64Data = validatedData.audioBlob.replace(/^data:audio\/wav;base64,/, '');
+      fileBuffer = Buffer.from(base64Data, 'base64');
+      contentType = 'audio/wav';
+    } else {
+      return NextResponse.json({ error: 'No file data provided' }, { status: 400 });
+    }
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(validatedData.bucket)
+      .upload(`${session.user.id}/${validatedData.fileName}`, fileBuffer, {
+        contentType,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Supabase storage error:', error);
+      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(validatedData.bucket)
+      .getPublicUrl(data.path);
+
+    return NextResponse.json({
+      data: {
+        path: data.path,
+        url: urlData.publicUrl,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    console.error('Upload error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

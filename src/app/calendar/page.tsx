@@ -1,77 +1,104 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from 'next-auth/react';
-import { Calendar, Clock, User, BookOpen } from 'lucide-react';
-import CalendarComponent from '@/components/Calendar';
+
+const localizer = momentLocalizer(moment);
 
 interface CalendarEvent {
   id: string;
   title: string;
-  start: string;
-  end: string;
-  backgroundColor: string;
-  borderColor: string;
-  extendedProps: {
-    type: 'session' | 'availability' | 'booking';
-    tutorId?: string;
-    studentId?: string;
-    subject?: string;
-    status?: 'confirmed' | 'pending' | 'cancelled';
-  };
+  description?: string;
+  start_time: string;
+  end_time: string;
+  type: 'SESSION' | 'AVAILABILITY' | 'REMINDER' | 'CUSTOM';
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+  location?: string;
+  meeting_url?: string;
+  tutor_id?: string;
+  student_id?: string;
+  subject_id?: string;
+  booking_id?: string;
+  is_recurring: boolean;
+  recurrence_rule?: string;
+  color?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface CalendarEventFormatted {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  resource?: any;
+  className?: string;
 }
 
 export default function CalendarPage() {
   const { data: session } = useSession();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState<CalendarEventFormatted[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user?.id) {
       fetchCalendarEvents();
     }
-  }, [session]);
+  }, [session?.user?.id]);
 
   const fetchCalendarEvents = async () => {
     try {
       const response = await fetch('/api/calendar');
-      if (!response.ok) throw new Error('Failed to fetch events');
-      
-      const data = await response.json();
-      
-      // Transform database events to calendar format
-      const calendarEvents: CalendarEvent[] = data.data.events.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        start: event.startTime,
-        end: event.endTime,
-        backgroundColor: event.color || getEventColor(event.type, event.status),
-        borderColor: event.color || getEventColor(event.type, event.status),
-        extendedProps: {
-          type: event.type.toLowerCase(),
-          tutorId: event.tutorId,
-          studentId: event.studentId,
-          subject: event.subject?.name,
-          status: event.status.toLowerCase(),
-          description: event.description,
-          location: event.location,
-          meetingUrl: event.meetingUrl,
-        },
-      }));
-
-      setEvents(calendarEvents);
-      setIsLoading(false);
+      if (response.ok) {
+        const data = await response.json();
+        const formattedEvents = data.events.map((event: CalendarEvent) => ({
+          id: event.id,
+          title: event.title,
+          start: new Date(event.start_time),
+          end: new Date(event.end_time),
+          resource: event,
+          className: getEventClassName(event),
+        }));
+        setEvents(formattedEvents);
+      }
     } catch (error) {
       console.error('Error fetching calendar events:', error);
-      setIsLoading(false);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getEventColor = (type: string, status?: string) => {
-    switch (type) {
+  const getEventClassName = (event: CalendarEvent): string => {
+    const baseClass = 'event-item';
+    
+    // Type-based styling
+    switch (event.type) {
       case 'SESSION':
-        return status === 'CONFIRMED' ? '#10B981' : '#F59E0B';
+        return `${baseClass} session-event`;
+      case 'AVAILABILITY':
+        return `${baseClass} availability-event`;
+      case 'REMINDER':
+        return `${baseClass} reminder-event`;
+      case 'CUSTOM':
+        return `${baseClass} custom-event`;
+      default:
+        return baseClass;
+    }
+  };
+
+  const getEventColor = (event: CalendarEvent): string => {
+    // Custom color if specified
+    if (event.color) {
+      return event.color;
+    }
+
+    // Default colors based on type and status
+    switch (event.type) {
+      case 'SESSION':
+        return event.status === 'CONFIRMED' ? '#10B981' : '#F59E0B';
       case 'AVAILABILITY':
         return '#3B82F6';
       case 'REMINDER':
@@ -83,161 +110,163 @@ export default function CalendarPage() {
     }
   };
 
-  const handleEventClick = (event: CalendarEvent) => {
-    setSelectedEvent(event);
+  const eventStyleGetter = (event: CalendarEventFormatted) => {
+    const color = getEventColor(event.resource);
+    return {
+      style: {
+        backgroundColor: color,
+        borderColor: color,
+        color: '#FFFFFF',
+        borderRadius: '4px',
+        padding: '2px 4px',
+        fontSize: '12px',
+        fontWeight: '500',
+      },
+    };
   };
 
-  const handleDateSelect = (start: string, end: string) => {
-    // Handle date selection for booking new sessions
-    console.log('Selected date range:', { start, end });
-    // You could open a booking modal here
+  const handleSelect = ({ start, end }: { start: Date; end: Date }) => {
+    const title = window.prompt('Please enter a title for your event');
+    if (title) {
+      createEvent({ title, start, end });
+    }
   };
 
-  if (isLoading) {
+  const createEvent = async (eventData: { title: string; start: Date; end: Date }) => {
+    try {
+      const response = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: eventData.title,
+          startTime: eventData.start.toISOString(),
+          endTime: eventData.end.toISOString(),
+          type: 'CUSTOM',
+        }),
+      });
+
+      if (response.ok) {
+        await fetchCalendarEvents(); // Refresh events
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+    }
+  };
+
+  const handleEventSelect = (event: CalendarEventFormatted) => {
+    const resource = event.resource;
+    const details = `
+Title: ${resource.title}
+Type: ${resource.type}
+Status: ${resource.status}
+Start: ${new Date(resource.start_time).toLocaleString()}
+End: ${new Date(resource.end_time).toLocaleString()}
+${resource.description ? `Description: ${resource.description}` : ''}
+${resource.location ? `Location: ${resource.location}` : ''}
+${resource.meeting_url ? `Meeting URL: ${resource.meeting_url}` : ''}
+    `.trim();
+    
+    alert(details);
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading calendar...</p>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-300 rounded w-48 mb-6"></div>
+              <div className="h-96 bg-gray-200 rounded"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Schedule</h1>
-              <p className="text-gray-600">Manage your tutoring sessions and availability</p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Calendar</h1>
+            <p className="text-gray-600">
+              Manage your tutoring sessions, availability, and reminders
+            </p>
+          </div>
+
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-green-500 rounded"></div>
+                <span className="text-sm text-gray-600">Confirmed Sessions</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                <span className="text-sm text-gray-600">Pending Sessions</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                <span className="text-sm text-gray-600">Availability</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-purple-500 rounded"></div>
+                <span className="text-sm text-gray-600">Reminders</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-gray-500 rounded"></div>
+                <span className="text-sm text-gray-600">Custom Events</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calendar */}
-          <div className="lg:col-span-2">
-            <CalendarComponent
+          <div className="calendar-container">
+            <Calendar
+              localizer={localizer}
               events={events}
-              onEventClick={handleEventClick}
-              onDateSelect={handleDateSelect}
-              selectable={true}
-              height="700px"
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 600 }}
+              selectable
+              onSelectSlot={handleSelect}
+              onSelectEvent={handleEventSelect}
+              eventPropGetter={eventStyleGetter}
+              views={['month', 'week', 'day', 'agenda']}
+              defaultView="month"
+              step={60}
+              timeslots={1}
+              tooltipAccessor={(event) => event.title}
             />
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-green-600" />
-                    </div>
-                    <span className="text-gray-700">Confirmed Sessions</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    {events.filter(e => e.extendedProps.status === 'confirmed').length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-yellow-600" />
-                    </div>
-                    <span className="text-gray-700">Pending Sessions</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    {events.filter(e => e.extendedProps.status === 'pending').length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <span className="text-gray-700">Total Hours</span>
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    {events.reduce((total, event) => {
-                      const start = new Date(event.start);
-                      const end = new Date(event.end);
-                      return total + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-                    }, 0).toFixed(1)}h
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Selected Event Details */}
-            {selectedEvent && (
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Details</h3>
-                <div className="space-y-3">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{selectedEvent.title}</h4>
-                    <p className="text-sm text-gray-600">{selectedEvent.extendedProps.subject}</p>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
-                    <span>
-                      {new Date(selectedEvent.start).toLocaleDateString()} at{' '}
-                      {new Date(selectedEvent.start).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      selectedEvent.extendedProps.status === 'confirmed'
-                        ? 'bg-green-100 text-green-800'
-                        : selectedEvent.extendedProps.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {selectedEvent.extendedProps.status || 'Available'}
-                    </span>
-                  </div>
-                  <div className="pt-3 border-t">
-                    <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2">
-                  <BookOpen className="w-4 h-4" />
-                  <span>Book New Session</span>
-                </button>
-                <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>Set Availability</span>
-                </button>
-                <button className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2">
-                  <User className="w-4 h-4" />
-                  <span>Find Tutors</span>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .calendar-container {
+          height: 600px;
+        }
+        .event-item {
+          border-radius: 4px;
+          padding: 2px 4px;
+          font-size: 12px;
+          font-weight: 500;
+          color: white;
+        }
+        .session-event {
+          background-color: #10B981;
+        }
+        .availability-event {
+          background-color: #3B82F6;
+        }
+        .reminder-event {
+          background-color: #8B5CF6;
+        }
+        .custom-event {
+          background-color: #6B7280;
+        }
+      `}</style>
     </div>
   );
 }

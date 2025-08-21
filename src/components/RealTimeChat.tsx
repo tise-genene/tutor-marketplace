@@ -1,129 +1,114 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSupabaseChat } from '@/hooks/useSupabaseChat';
 import { useSession } from 'next-auth/react';
-import { Send, Paperclip, Mic, MicOff, X, Download, Play, Pause } from 'lucide-react';
-import { useChat } from '@/hooks/useChat';
+import { PaperAirplaneIcon, PaperClipIcon, MicrophoneIcon, StopIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 
 interface Message {
   id: string;
   content: string;
-  senderId: string;
-  receiverId: string;
-  timestamp: Date;
-  type: 'text' | 'file' | 'voice';
-  fileUrl?: string;
-  fileName?: string;
-  fileType?: string;
-  voiceDuration?: number;
+  sender_id: string;
+  receiver_id: string;
+  created_at: string;
+  type: 'TEXT' | 'FILE' | 'VOICE';
+  file_url?: string;
+  file_name?: string;
+  file_type?: string;
+  voice_duration?: number;
   read?: boolean;
 }
 
 interface RealTimeChatProps {
   receiverId: string;
   receiverName: string;
-  onClose?: () => void;
   className?: string;
 }
 
-export default function RealTimeChat({
-  receiverId,
-  receiverName,
-  onClose,
-  className = '',
-}: RealTimeChatProps) {
+export default function RealTimeChat({ receiverId, receiverName, className = '' }: RealTimeChatProps) {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [isOnline, setIsOnline] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  const roomId = [session?.user?.id, receiverId].sort().join('-');
-
-  const { sendMessage, startTyping, stopTyping, markAsRead, isConnected: socketConnected } = useChat({
+  const {
+    isConnected,
+    sendMessage,
+    startTyping,
+    stopTyping,
+    markAsRead,
+    loadMessages,
+  } = useSupabaseChat({
     userId: session?.user?.id || '',
-    roomId,
+    receiverId,
     onMessageReceived: (message) => {
       setMessages(prev => [...prev, message]);
-      markAsRead(message.id);
+      if (message.sender_id === receiverId) {
+        markAsRead(message.id);
+      }
     },
-    onTypingChange: (userId, typing) => {
+    onTypingChange: (userId, isTyping) => {
       if (userId === receiverId) {
-        setIsTyping(typing);
+        setIsTyping(isTyping);
       }
     },
     onUserOnline: (userId) => {
-      setOnlineUsers(prev => new Set(prev).add(userId));
+      if (userId === receiverId) {
+        setIsOnline(true);
+      }
     },
     onUserOffline: (userId) => {
-      setOnlineUsers(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(userId);
-        return newSet;
-      });
+      if (userId === receiverId) {
+        setIsOnline(false);
+      }
     },
   });
 
-  useEffect(() => {
-    setIsConnected(socketConnected);
-  }, [socketConnected]);
-
   // Load existing messages
   useEffect(() => {
-    const loadMessages = async () => {
-      try {
-        const response = await fetch(`/api/messages?userId=${receiverId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setMessages(data.data.messages || []);
-        }
-      } catch (error) {
-        console.error('Error loading messages:', error);
-      }
-    };
-
     if (session?.user?.id && receiverId) {
-      loadMessages();
+      loadMessages(50).then((existingMessages) => {
+        setMessages(existingMessages);
+        setIsLoading(false);
+      });
     }
-  }, [session?.user?.id, receiverId]);
+  }, [session?.user?.id, receiverId, loadMessages]);
 
-  // Auto-scroll to bottom
+  // Scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Mark messages as read when they come into view
+  useEffect(() => {
+    const unreadMessages = messages.filter(
+      msg => msg.sender_id === receiverId && !msg.read
+    );
+    unreadMessages.forEach(msg => markAsRead(msg.id));
+  }, [messages, receiverId, markAsRead]);
+
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !session?.user?.id) return;
+    if (!newMessage.trim() || !isConnected) return;
 
     const messageData = {
-      content: newMessage,
-      senderId: session.user.id,
-      receiverId,
-      type: 'text' as const,
+      content: newMessage.trim(),
+      sender_id: session?.user?.id || '',
+      receiver_id: receiverId,
+      type: 'TEXT' as const,
     };
 
-    const sentMessage = sendMessage(messageData);
+    const sentMessage = await sendMessage(messageData);
     if (sentMessage) {
-      setMessages(prev => [...prev, sentMessage]);
       setNewMessage('');
       stopTyping();
-
-      // Save to database
-      try {
-        await fetch('/api/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(messageData),
-        });
-      } catch (error) {
-        console.error('Error saving message:', error);
-      }
     }
   };
 
@@ -138,37 +123,38 @@ export default function RealTimeChat({
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !session?.user?.id) return;
+    if (!file || !isConnected) return;
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const uploadResponse = await fetch('/api/upload', {
+      // Upload file to Supabase Storage
+      const fileName = `${Date.now()}-${file.name}`;
+      const { data, error } = await fetch('/api/upload', {
         method: 'POST',
-        body: formData,
-      });
-
-      if (uploadResponse.ok) {
-        const { fileUrl } = await uploadResponse.json();
-
-        const messageData = {
-          content: `File: ${file.name}`,
-          senderId: session.user.id,
-          receiverId,
-          type: 'file' as const,
-          fileUrl,
-          fileName: file.name,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName,
           fileType: file.type,
-        };
+          bucket: 'documents',
+        }),
+      }).then(res => res.json());
 
-        const sentMessage = sendMessage(messageData);
-        if (sentMessage) {
-          setMessages(prev => [...prev, sentMessage]);
-        }
-      }
+      if (error) throw new Error(error);
+
+      // Send message with file
+      const messageData = {
+        content: `File: ${file.name}`,
+        sender_id: session?.user?.id || '',
+        receiver_id: receiverId,
+        type: 'FILE' as const,
+        file_name: file.name,
+        file_type: file.type,
+        file_url: data.url,
+      };
+
+      await sendMessage(messageData);
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('File upload error:', error);
+      alert('Failed to upload file');
     }
   };
 
@@ -176,53 +162,57 @@ export default function RealTimeChat({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      const audioChunks: Blob[] = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        audioChunks.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const formData = new FormData();
-        formData.append('file', audioBlob, 'voice-message.wav');
-
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const fileName = `voice-${Date.now()}.wav`;
+        
         try {
-          const uploadResponse = await fetch('/api/upload', {
+          // Upload audio to Supabase Storage
+          const { data, error } = await fetch('/api/upload', {
             method: 'POST',
-            body: formData,
-          });
-
-          if (uploadResponse.ok) {
-            const { fileUrl } = await uploadResponse.json();
-            const duration = audioChunksRef.current.length * 0.1; // Approximate duration
-
-            const messageData = {
-              content: 'Voice message',
-              senderId: session?.user?.id || '',
-              receiverId,
-              type: 'voice' as const,
-              fileUrl,
-              fileName: 'voice-message.wav',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName,
               fileType: 'audio/wav',
-              voiceDuration: duration,
-            };
+              bucket: 'voice-messages',
+              audioBlob: await blobToBase64(audioBlob),
+            }),
+          }).then(res => res.json());
 
-            const sentMessage = sendMessage(messageData);
-            if (sentMessage) {
-              setMessages(prev => [...prev, sentMessage]);
-            }
-          }
+          if (error) throw new Error(error);
+
+          // Send voice message
+          const messageData = {
+            content: 'Voice message',
+            sender_id: session?.user?.id || '',
+            receiver_id: receiverId,
+            type: 'VOICE' as const,
+            file_name: fileName,
+            file_type: 'audio/wav',
+            file_url: data.url,
+            voice_duration: audioChunks.length * 0.1, // Approximate duration
+          };
+
+          await sendMessage(messageData);
         } catch (error) {
-          console.error('Error uploading voice message:', error);
+          console.error('Voice upload error:', error);
+          alert('Failed to send voice message');
         }
       };
 
       mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = audioChunks;
       setIsRecording(true);
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error('Recording error:', error);
+      alert('Failed to start recording');
     }
   };
 
@@ -234,46 +224,79 @@ export default function RealTimeChat({
     }
   };
 
-  const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
   };
 
-  const isReceiverOnline = onlineUsers.has(receiverId);
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const isOwnMessage = (message: Message) => message.sender_id === session?.user?.id;
+
+  if (isLoading) {
+    return (
+      <div className={`flex flex-col h-full ${className}`}>
+        <div className="flex items-center justify-between p-4 border-b bg-white">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gray-300 rounded-full animate-pulse"></div>
+            <div>
+              <div className="h-4 bg-gray-300 rounded w-24 animate-pulse"></div>
+              <div className="h-3 bg-gray-200 rounded w-16 animate-pulse mt-1"></div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 p-4">
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex space-x-3">
+                <div className="w-8 h-8 bg-gray-300 rounded-full animate-pulse"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-300 rounded w-32 animate-pulse"></div>
+                  <div className="h-3 bg-gray-200 rounded w-20 animate-pulse mt-1"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`bg-white rounded-lg shadow-xl flex flex-col h-96 ${className}`}>
+    <div className={`flex flex-col h-full ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-lg">
+      <div className="flex items-center justify-between p-4 border-b bg-white">
         <div className="flex items-center space-x-3">
           <div className="relative">
-            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
               {receiverName.charAt(0).toUpperCase()}
             </div>
             <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
-              isReceiverOnline ? 'bg-green-500' : 'bg-gray-400'
-            }`} />
+              isOnline ? 'bg-green-500' : 'bg-gray-400'
+            }`}></div>
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">{receiverName}</h3>
             <p className="text-sm text-gray-500">
-              {isReceiverOnline ? 'Online' : 'Offline'}
+              {isOnline ? 'Online' : 'Offline'}
               {isTyping && ' • typing...'}
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <span className="text-xs text-gray-500">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
         </div>
       </div>
 
@@ -282,49 +305,61 @@ export default function RealTimeChat({
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.senderId === session?.user?.id ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${isOwnMessage(message) ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-              message.senderId === session?.user?.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-900'
-            }`}>
-              {message.type === 'text' && (
+            <div className={`max-w-xs lg:max-w-md ${
+              isOwnMessage(message) 
+                ? 'bg-blue-500 text-white rounded-l-lg rounded-tr-lg' 
+                : 'bg-gray-100 text-gray-900 rounded-r-lg rounded-tl-lg'
+            } p-3`}>
+              {message.type === 'TEXT' && (
                 <p className="text-sm">{message.content}</p>
               )}
               
-              {message.type === 'file' && (
-                <div className="flex items-center space-x-2">
-                  <Paperclip className="w-4 h-4" />
+              {message.type === 'FILE' && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{message.content}</p>
                   <a
-                    href={message.fileUrl}
-                    download={message.fileName}
-                    className="text-sm underline hover:no-underline"
+                    href={message.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-2 text-xs underline hover:no-underline"
                   >
-                    {message.fileName}
+                    <PaperClipIcon className="w-4 h-4" />
+                    <span>{message.file_name}</span>
                   </a>
-                  <Download className="w-4 h-4" />
                 </div>
               )}
               
-              {message.type === 'voice' && (
-                <div className="flex items-center space-x-2">
-                  <Play className="w-4 h-4" />
-                  <span className="text-sm">Voice message</span>
-                  <span className="text-xs opacity-75">
-                    {message.voiceDuration?.toFixed(1)}s
-                  </span>
+              {message.type === 'VOICE' && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{message.content}</p>
+                  <audio controls className="w-full">
+                    <source src={message.file_url} type="audio/wav" />
+                    Your browser does not support the audio element.
+                  </audio>
+                  {message.voice_duration && (
+                    <p className="text-xs opacity-75">
+                      Duration: {Math.round(message.voice_duration)}s
+                    </p>
+                  )}
                 </div>
               )}
               
-              <p className={`text-xs mt-1 ${
-                message.senderId === session?.user?.id ? 'text-blue-100' : 'text-gray-500'
-              }`}>
-                {formatTime(message.timestamp)}
-                {message.read && message.senderId === session?.user?.id && (
-                  <span className="ml-1">✓</span>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs opacity-75">
+                  {formatTime(message.created_at)}
+                </span>
+                {isOwnMessage(message) && (
+                  <div className="flex items-center space-x-1">
+                    {message.read ? (
+                      <CheckCircleIcon className="w-4 h-4 text-blue-300" />
+                    ) : (
+                      <CheckIcon className="w-4 h-4 text-blue-300" />
+                    )}
+                  </div>
                 )}
-              </p>
+              </div>
             </div>
           </div>
         ))}
@@ -332,13 +367,13 @@ export default function RealTimeChat({
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t bg-gray-50 rounded-b-lg">
+      <div className="p-4 border-t bg-white">
         <div className="flex items-center space-x-2">
           <button
             onClick={() => fileInputRef.current?.click()}
             className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
           >
-            <Paperclip className="w-5 h-5" />
+            <PaperClipIcon className="w-5 h-5" />
           </button>
           
           <button
@@ -349,7 +384,11 @@ export default function RealTimeChat({
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isRecording ? (
+              <StopIcon className="w-5 h-5" />
+            ) : (
+              <MicrophoneIcon className="w-5 h-5" />
+            )}
           </button>
           
           <input
@@ -360,14 +399,15 @@ export default function RealTimeChat({
             onBlur={stopTyping}
             placeholder="Type a message..."
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={!isConnected}
           />
           
           <button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim()}
-            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={!newMessage.trim() || !isConnected}
+            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <Send className="w-5 h-5" />
+            <PaperAirplaneIcon className="w-5 h-5" />
           </button>
         </div>
         
@@ -376,7 +416,7 @@ export default function RealTimeChat({
           type="file"
           onChange={handleFileUpload}
           className="hidden"
-          accept="image/*,application/pdf,.doc,.docx,.txt"
+          accept="image/*,.pdf,.doc,.docx,.txt"
         />
       </div>
     </div>

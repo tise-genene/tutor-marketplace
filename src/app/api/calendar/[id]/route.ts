@@ -1,21 +1,22 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
-import { withApiHandler } from '@/lib/api-middleware';
-import { apiSuccess, ApiErrors } from '@/lib/api-response';
-import { validateRequestBody } from '@/lib/validate-request';
+import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
 
 const updateEventSchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
   description: z.string().optional(),
-  startTime: z.string().datetime('Invalid start time').optional(),
-  endTime: z.string().datetime('Invalid end time').optional(),
-  type: z.enum(['SESSION', 'AVAILABILITY', 'REMINDER', 'CUSTOM'] as const).optional(),
-  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'] as const).optional(),
+  startTime: z.string().datetime().optional(),
+  endTime: z.string().datetime().optional(),
+  type: z.enum(['SESSION', 'AVAILABILITY', 'REMINDER', 'CUSTOM']).optional(),
+  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']).optional(),
   location: z.string().optional(),
-  meetingUrl: z.string().url().optional().or(z.literal('')),
+  meetingUrl: z.string().url().optional(),
+  subjectId: z.string().optional(),
+  bookingId: z.string().optional(),
+  isRecurring: z.boolean().optional(),
+  recurrenceRule: z.string().optional(),
   color: z.string().optional(),
 });
 
@@ -23,131 +24,142 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withApiHandler(async (req) => {
+  try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) return ApiErrors.UNAUTHORIZED();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    const event = await prisma.calendarEvent.findFirst({
-      where: {
-        id: params.id,
-        OR: [
-          { tutorId: session.user.id },
-          { studentId: session.user.id }
-        ]
-      },
-      include: {
-        tutor: {
-          select: { id: true, name: true, email: true }
-        },
-        student: {
-          select: { id: true, name: true, email: true }
-        },
-        subject: {
-          select: { id: true, name: true, category: true }
-        },
-        booking: {
-          select: { id: true, status: true, hourlyRate: true }
-        }
+    const { data: event, error } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('id', params.id)
+      .or(`tutor_id.eq.${session.user.id},student_id.eq.${session.user.id}`)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 });
       }
-    });
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to fetch event' }, { status: 500 });
+    }
 
-    if (!event) return ApiErrors.NOT_FOUND('Calendar event');
-
-    return apiSuccess(event);
-  }, request);
+    return NextResponse.json(event);
+  } catch (error) {
+    console.error('Calendar GET error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withApiHandler(async (req) => {
+  try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) return ApiErrors.UNAUTHORIZED();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const validatedData = updateEventSchema.parse(body);
 
     // Check if user owns this event
-    const existingEvent = await prisma.calendarEvent.findFirst({
-      where: {
-        id: params.id,
-        OR: [
-          { tutorId: session.user.id },
-          { studentId: session.user.id }
-        ]
-      }
-    });
+    const { data: existingEvent, error: fetchError } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('id', params.id)
+      .or(`tutor_id.eq.${session.user.id},student_id.eq.${session.user.id}`)
+      .single();
 
-    if (!existingEvent) return ApiErrors.NOT_FOUND('Calendar event');
-
-    const body = await validateRequestBody(request, updateEventSchema);
-    if (!body.success) return body.error;
-
-    const updateData: any = { ...body.data };
-    
-    // Remove undefined values
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key] === undefined) {
-        delete updateData[key];
-      }
-    });
+    if (fetchError || !existingEvent) {
+      return NextResponse.json({ error: 'Event not found or access denied' }, { status: 404 });
+    }
 
     // Validate time range if both times are provided
-    if (updateData.startTime && updateData.endTime) {
-      const start = new Date(updateData.startTime);
-      const end = new Date(updateData.endTime);
+    if (validatedData.startTime && validatedData.endTime) {
+      const start = new Date(validatedData.startTime);
+      const end = new Date(validatedData.endTime);
       
       if (start >= end) {
-        return ApiErrors.INVALID_INPUT('End time must be after start time');
+        return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 });
       }
     }
 
-    const event = await prisma.calendarEvent.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        tutor: {
-          select: { id: true, name: true, email: true }
-        },
-        student: {
-          select: { id: true, name: true, email: true }
-        },
-        subject: {
-          select: { id: true, name: true, category: true }
-        },
-        booking: {
-          select: { id: true, status: true, hourlyRate: true }
-        }
-      }
-    });
+    // Prepare update data
+    const updateData: any = {};
+    if (validatedData.title !== undefined) updateData.title = validatedData.title;
+    if (validatedData.description !== undefined) updateData.description = validatedData.description;
+    if (validatedData.startTime !== undefined) updateData.start_time = validatedData.startTime;
+    if (validatedData.endTime !== undefined) updateData.end_time = validatedData.endTime;
+    if (validatedData.type !== undefined) updateData.type = validatedData.type;
+    if (validatedData.status !== undefined) updateData.status = validatedData.status;
+    if (validatedData.location !== undefined) updateData.location = validatedData.location;
+    if (validatedData.meetingUrl !== undefined) updateData.meeting_url = validatedData.meetingUrl;
+    if (validatedData.subjectId !== undefined) updateData.subject_id = validatedData.subjectId;
+    if (validatedData.bookingId !== undefined) updateData.booking_id = validatedData.bookingId;
+    if (validatedData.isRecurring !== undefined) updateData.is_recurring = validatedData.isRecurring;
+    if (validatedData.recurrenceRule !== undefined) updateData.recurrence_rule = validatedData.recurrenceRule;
+    if (validatedData.color !== undefined) updateData.color = validatedData.color;
 
-    return apiSuccess(event);
-  }, request);
+    const { data: updatedEvent, error } = await supabase
+      .from('calendar_events')
+      .update(updateData)
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to update event' }, { status: 500 });
+    }
+
+    return NextResponse.json(updatedEvent);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    console.error('Calendar PUT error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withApiHandler(async (req) => {
+  try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) return ApiErrors.UNAUTHORIZED();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Check if user owns this event
-    const existingEvent = await prisma.calendarEvent.findFirst({
-      where: {
-        id: params.id,
-        OR: [
-          { tutorId: session.user.id },
-          { studentId: session.user.id }
-        ]
-      }
-    });
+    const { data: existingEvent, error: fetchError } = await supabase
+      .from('calendar_events')
+      .select('*')
+      .eq('id', params.id)
+      .or(`tutor_id.eq.${session.user.id},student_id.eq.${session.user.id}`)
+      .single();
 
-    if (!existingEvent) return ApiErrors.NOT_FOUND('Calendar event');
+    if (fetchError || !existingEvent) {
+      return NextResponse.json({ error: 'Event not found or access denied' }, { status: 404 });
+    }
 
-    await prisma.calendarEvent.delete({
-      where: { id: params.id }
-    });
+    const { error } = await supabase
+      .from('calendar_events')
+      .delete()
+      .eq('id', params.id);
 
-    return apiSuccess({ message: 'Event deleted successfully' });
-  }, request);
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to delete event' }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: 'Event deleted successfully' });
+  } catch (error) {
+    console.error('Calendar DELETE error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
