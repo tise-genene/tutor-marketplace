@@ -38,8 +38,14 @@ export default function LoginPage() {
         return
       }
 
-      router.push("/dashboard")
-      router.refresh()
+      // Successful login
+      toast({
+        title: "Success",
+        description: "Login successful! Redirecting...",
+      })
+      
+      // Use window.location for a full page redirect to avoid NextAuth issues
+      window.location.href = "/dashboard"
     } catch (error) {
       toast({
         title: "Error",

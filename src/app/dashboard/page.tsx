@@ -34,8 +34,15 @@ export default function DashboardPage() {
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard stats');
       }
-      const data = await response.json();
-      setStats(data);
+      const result = await response.json();
+      console.log('Dashboard API response:', result);
+      
+      // Handle the new API response format
+      if (result.success && result.data) {
+        setStats(result.data);
+      } else {
+        setStats(result); // Fallback for old format
+      }
     } catch (error) {
       setError('Failed to load dashboard stats');
       console.error('Error fetching dashboard stats:', error);

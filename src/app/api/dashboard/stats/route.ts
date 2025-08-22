@@ -1,94 +1,72 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { NextRequest } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { apiSuccess, apiError, ApiErrors } from "@/lib/api-response";
 
-interface DashboardStats {
-  totalBookings: number;
-  upcomingBookings: number;
-  completedBookings: number;
-  totalEarnings?: number;
-  averageRating?: number;
-}
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Get the session
     const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+    
+    if (!session?.user?.id) {
+      return apiError("Unauthorized", "UNAUTHORIZED", 401);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user?.email as string },
-    });
+    const userId = session.user.id;
+    const userRole = session.user.role;
 
-    if (!user) {
-      return NextResponse.json(
-        { message: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Get all bookings for the user
-    const bookings = await prisma.booking.findMany({
-      where: {
-        OR: [
-          { studentId: user.id },
-          { tutorId: user.id },
-        ],
-      },
-    });
-
-    // Calculate statistics
-    const totalBookings = bookings.length;
-    const upcomingBookings = bookings.filter(
-      (booking) =>
-        new Date(booking.date) > new Date() &&
-        booking.status !== 'CANCELLED'
-    ).length;
-    const completedBookings = bookings.filter(
-      (booking) => booking.status === 'COMPLETED'
-    ).length;
-
-    const stats: DashboardStats = {
-      totalBookings,
-      upcomingBookings,
-      completedBookings,
+    // Initialize stats
+    const stats = {
+      totalBookings: 0,
+      upcomingBookings: 0,
+      completedBookings: 0,
+      averageRating: 0,
+      totalEarnings: 0,
     };
 
-    // Add role-specific statistics
-    if (user.role === 'TUTOR') {
-      // Calculate total earnings
-      const totalEarnings = bookings
-        .filter((booking) => booking.status === 'COMPLETED')
-        .reduce((sum: number, booking) => sum + (booking.hourlyRate ?? 0), 0);
+    try {
+      if (userRole === 'TUTOR') {
+        // Get tutor stats
+        const { data: bookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('tutor_id', userId);
 
-      stats.totalEarnings = totalEarnings;
-    } else {
-      // Calculate average rating for tutors
-      const tutorReviews = await prisma.review.findMany({
-        where: {
-          tutorId: user.id,
-        },
-      });
+        if (!bookingsError && bookings) {
+          stats.totalBookings = bookings.length;
+          stats.upcomingBookings = bookings.filter(b => b.status === 'CONFIRMED').length;
+          stats.completedBookings = bookings.filter(b => b.status === 'COMPLETED').length;
+          
+          // Calculate total earnings
+          const completedBookings = bookings.filter(b => b.status === 'COMPLETED');
+          stats.totalEarnings = completedBookings.reduce((sum, booking) => {
+            const duration = new Date(booking.end_time).getTime() - new Date(booking.start_time).getTime();
+            const hours = duration / (1000 * 60 * 60);
+            return sum + (booking.hourly_rate * hours);
+          }, 0);
+        }
+      } else {
+        // Get student stats
+        const { data: bookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('student_id', userId);
 
-      const averageRating =
-        tutorReviews.reduce((sum: number, review) => sum + review.rating, 0) /
-        (tutorReviews.length || 1);
-
-      stats.averageRating = averageRating;
+        if (!bookingsError && bookings) {
+          stats.totalBookings = bookings.length;
+          stats.upcomingBookings = bookings.filter(b => b.status === 'CONFIRMED').length;
+          stats.completedBookings = bookings.filter(b => b.status === 'COMPLETED').length;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      // Return default stats if there's an error
     }
 
-    return NextResponse.json(stats);
+    return apiSuccess(stats);
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
-    return NextResponse.json(
-      { message: 'Something went wrong' },
-      { status: 500 }
-    );
+    console.error("Dashboard stats error:", error);
+    return ApiErrors.INTERNAL_ERROR();
   }
 } 
