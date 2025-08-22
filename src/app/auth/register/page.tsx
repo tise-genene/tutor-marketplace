@@ -46,11 +46,11 @@ export default function RegisterPage() {
 
       toast({
         title: "Success",
-        description: "Account created successfully! Please sign in.",
+        description: "Account created successfully! Please check your email for verification code.",
       })
 
-      // Redirect to login page
-      router.push("/auth/login")
+      // Redirect to verification page
+      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
     } catch (error) {
       toast({
         title: "Error",
