@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     console.error('Messages GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(message);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     console.error('Messages POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

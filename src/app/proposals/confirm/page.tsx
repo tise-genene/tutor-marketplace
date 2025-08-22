@@ -28,10 +28,10 @@ function ConfirmContent() {
   const [proposalId, setProposalId] = useState<string | null>(null);
   const [amount, setAmount] = useState(0);
 
-  const tutorId = searchParams.get('tutorId');
-  const date = searchParams.get('date');
-  const time = searchParams.get('time');
-  const subjectId = searchParams.get('subjectId');
+  const tutorId = searchParams?.get('tutorId');
+  const date = searchParams?.get('date');
+  const time = searchParams?.get('time');
+  const subjectId = searchParams?.get('subjectId');
 
   if (!tutorId || !date || !time || !subjectId) {
     return (

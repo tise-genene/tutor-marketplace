@@ -22,8 +22,9 @@ const updateEventSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -33,7 +34,7 @@ export async function GET(
     const { data: event, error } = await supabase
       .from('calendar_events')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .or(`tutor_id.eq.${session.user.id},student_id.eq.${session.user.id}`)
       .single();
 
@@ -54,8 +55,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -69,7 +71,7 @@ export async function PUT(
     const { data: existingEvent, error: fetchError } = await supabase
       .from('calendar_events')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .or(`tutor_id.eq.${session.user.id},student_id.eq.${session.user.id}`)
       .single();
 
@@ -106,7 +108,7 @@ export async function PUT(
     const { data: updatedEvent, error } = await supabase
       .from('calendar_events')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -118,7 +120,7 @@ export async function PUT(
     return NextResponse.json(updatedEvent);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      return NextResponse.json({ error: error.issues }, { status: 400 });
     }
     console.error('Calendar PUT error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -127,8 +129,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -139,7 +142,7 @@ export async function DELETE(
     const { data: existingEvent, error: fetchError } = await supabase
       .from('calendar_events')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .or(`tutor_id.eq.${session.user.id},student_id.eq.${session.user.id}`)
       .single();
 
@@ -150,7 +153,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('calendar_events')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) {
       console.error('Supabase error:', error);

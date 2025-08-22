@@ -29,7 +29,7 @@ export default function IndividualMessagePage() {
   const { data: session } = useSession();
   const router = useRouter();
   const params = useParams();
-  const otherUserId = params.userId as string;
+  const otherUserId = params?.userId as string;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherUser, setOtherUser] = useState<User | null>(null);

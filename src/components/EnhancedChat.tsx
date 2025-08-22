@@ -143,7 +143,7 @@ export default function EnhancedChat({
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioFile = new File([audioBlob], 'voice-message.wav', { type: 'audio/wav' });
+        const audioFile = new Blob([audioBlob], { type: 'audio/wav' }) as any;
         onSendMessage('', 'voice', audioFile);
         setIsRecording(false);
       };

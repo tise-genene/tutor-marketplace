@@ -6,7 +6,7 @@ import { AlertTriangle } from 'lucide-react';
 
 export default function AuthErrorPage() {
   const searchParams = useSearchParams();
-  const error = searchParams.get('error');
+  const error = searchParams?.get('error');
 
   const getErrorMessage = (error: string | null) => {
     switch (error) {
@@ -40,7 +40,7 @@ export default function AuthErrorPage() {
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Error</h1>
             
             <p className="text-gray-600 mb-6">
-              {getErrorMessage(error)}
+              {getErrorMessage(error || null)}
             </p>
 
             <div className="space-y-3">

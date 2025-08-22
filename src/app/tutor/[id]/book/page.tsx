@@ -19,7 +19,8 @@ interface Tutor {
 }
 
 export default function BookTutorPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
   const router = useRouter();
   const { data: session } = useSession();
   const [tutor, setTutor] = useState<Tutor | null>(null);

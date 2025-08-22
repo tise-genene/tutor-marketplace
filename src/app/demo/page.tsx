@@ -5,9 +5,22 @@ import { Phone, MessageSquare, FileText, Mic } from 'lucide-react';
 import VideoCallButton from '@/components/VideoCallButton';
 import EnhancedChat from '@/components/EnhancedChat';
 
+type DemoMessage = {
+  id: string;
+  content: string;
+  senderId: string;
+  receiverId: string;
+  timestamp: Date;
+  type: 'text' | 'file' | 'voice';
+  fileName?: string;
+  fileType?: string;
+  fileUrl?: string;
+  voiceDuration?: number;
+};
+
 export default function DemoPage() {
   const [showChat, setShowChat] = useState(false);
-  const [demoMessages, setDemoMessages] = useState([
+  const [demoMessages, setDemoMessages] = useState<DemoMessage[]>([
     {
       id: '1',
       content: 'Hi! I\'m interested in your math tutoring services.',
@@ -50,7 +63,7 @@ export default function DemoPage() {
   ]);
 
   const handleSendMessage = (content: string, type: 'text' | 'file' | 'voice', file?: File) => {
-    const newMessage = {
+    const newMessage: DemoMessage = {
       id: Date.now().toString(),
       content,
       senderId: 'demo-user-1',

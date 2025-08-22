@@ -12,14 +12,19 @@ const createPaymentIntentSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
 });
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await validateRequestBody(req, createPaymentIntentSchema);
+  const validation = await validateRequestBody(req, createPaymentIntentSchema);
+  if (!validation.success) {
+    return validation.error;
+  }
+  
+  const body = validation.data;
   
   // Get proposal details
   const proposal = await prisma.booking.findUnique({
@@ -31,11 +36,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
           tutorProfile: true,
         },
       },
-      tutorSubject: {
-        include: {
-          subject: true,
-        },
-      },
+      subject: true,
     },
   });
 
@@ -48,17 +49,22 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Calculate duration from start and end times
+  const startTime = new Date(`2000-01-01T${proposal.startTime}`);
+  const endTime = new Date(`2000-01-01T${proposal.endTime}`);
+  const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
   // Create payment intent
   const paymentIntent = await createPaymentIntent(body.amount, {
     proposalId: body.proposalId,
     studentId: session.user.id,
     tutorId: proposal.tutorId,
-    subject: proposal.tutorSubject.subject.name,
-    hours: proposal.duration,
+    subject: proposal.subject.name,
+    hours: durationHours,
   });
 
   return NextResponse.json({
     clientSecret: paymentIntent.client_secret,
     paymentIntentId: paymentIntent.id,
   });
-});
+}

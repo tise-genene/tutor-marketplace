@@ -6,7 +6,7 @@ import { Footer } from '@/components/layout/footer';
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthRoute = pathname.startsWith('/auth');
+  const isAuthRoute = pathname?.startsWith('/auth') || false;
 
   return (
     <>
