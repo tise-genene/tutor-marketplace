@@ -4,9 +4,10 @@ import bcrypt from 'bcryptjs';
 import { supabase } from '@/lib/supabase';
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET || 'MqwWoacIslM16L9/bZi+wQ2OBhGxQGGkyDQpSWgRp1o=',
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
+      id: 'credentials',
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
@@ -18,15 +19,24 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Get user from Supabase
+          // Get user from Supabase with explicit password field selection
           const { data: user, error } = await supabase
             .from('users')
-            .select('*')
+            .select('id, name, email, password, role')
             .eq('email', credentials.email.toLowerCase())
             .single();
 
-          if (error || !user) {
+          if (error) {
+            console.error('Supabase error:', error);
+            throw new Error('Database error occurred');
+          }
+
+          if (!user) {
             throw new Error('No user found with this email');
+          }
+
+          if (!user.password) {
+            throw new Error('Invalid user account');
           }
 
           // Verify password
@@ -49,18 +59,23 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: { strategy: 'jwt' },
-  pages: { signIn: '/auth/login' },
-  debug: process.env.NODE_ENV === 'development',
+  pages: { 
+    signIn: '/auth/login',
+    error: '/auth/error'
+  },
+  debug: false,
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        (token as any).role = (user as any).role;
+        token.role = (user as any).role;
+        token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
-        (session.user as any).role = (token as any).role;
+        session.user.role = (token as any).role;
+        session.user.id = (token as any).id;
       }
       return session;
     },
