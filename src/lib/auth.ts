@@ -19,10 +19,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Get user from Supabase with explicit password field selection
+          // Get user from Supabase with email verification status
           const { data: user, error } = await supabase
             .from('users')
-            .select('id, name, email, password, role')
+            .select('id, name, email, password, role, email_verified')
             .eq('email', credentials.email.toLowerCase())
             .single();
 
@@ -37,6 +37,11 @@ export const authOptions: NextAuthOptions = {
 
           if (!user.password) {
             throw new Error('Invalid user account');
+          }
+
+          // Check if email is verified
+          if (!user.email_verified) {
+            throw new Error('Please verify your email address before signing in. Check your email for a verification code.');
           }
 
           // Verify password
