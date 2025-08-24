@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
+  url: process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
   providers: [
     CredentialsProvider({
       id: 'credentials',
