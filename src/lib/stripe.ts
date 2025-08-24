@@ -1,9 +1,12 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe with secret key
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-07-30.basil',
-});
+// Initialize Stripe with secret key - handle missing env during build
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+export const stripe = stripeSecretKey 
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: '2025-07-30.basil',
+    })
+  : null;
 
 // Stripe configuration
 export const STRIPE_CONFIG = {
@@ -14,6 +17,10 @@ export const STRIPE_CONFIG = {
 
 // Payment intent creation
 export async function createPaymentIntent(amount: number, metadata: any) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
@@ -33,6 +40,10 @@ export async function createPaymentIntent(amount: number, metadata: any) {
 
 // Get payment intent
 export async function getPaymentIntent(paymentIntentId: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+
   try {
     return await stripe.paymentIntents.retrieve(paymentIntentId);
   } catch (error) {
@@ -43,6 +54,10 @@ export async function getPaymentIntent(paymentIntentId: string) {
 
 // Confirm payment intent
 export async function confirmPaymentIntent(paymentIntentId: string) {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+
   try {
     return await stripe.paymentIntents.confirm(paymentIntentId);
   } catch (error) {
