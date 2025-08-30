@@ -135,7 +135,7 @@ export default function RegisterPage() {
                   placeholder="Enter your full name"
                   required
                   disabled={isLoading}
-                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500"
+                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500 text-gray-900"
                 />
               </div>
               
@@ -150,7 +150,7 @@ export default function RegisterPage() {
                   placeholder="Enter your email"
                   required
                   disabled={isLoading}
-                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500"
+                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500 text-gray-900"
                 />
               </div>
               
@@ -165,9 +165,9 @@ export default function RegisterPage() {
                   placeholder="Create a strong password"
                   required
                   disabled={isLoading}
-                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500"
+                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500 text-gray-900"
                 />
-                <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters long</p>
+                <p className="text-xs text-gray-900 mt-1">Must be at least 8 characters long</p>
               </div>
 
               <div>
@@ -179,7 +179,7 @@ export default function RegisterPage() {
                   name="role"
                   required
                   disabled={isLoading}
-                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500 text-gray-900"
                 >
                   <option value="STUDENT">Learn from tutors</option>
                   <option value="TUTOR">Teach students</option>
