@@ -209,12 +209,20 @@ export default function BookingsPage() {
                 )}
 
                 {session?.user?.role === 'STUDENT' && booking.status === 'PENDING' && (
-                  <button
-                    onClick={() => handleStatusUpdate(booking.id, 'CANCELLED')}
-                    className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
-                  >
-                    Cancel Proposal
-                  </button>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => router.push(`/bookings/confirm?id=${booking.id}`)}
+                      className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                    >
+                      Confirm & Pay
+                    </button>
+                    <button
+                      onClick={() => handleStatusUpdate(booking.id, 'CANCELLED')}
+                      className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
