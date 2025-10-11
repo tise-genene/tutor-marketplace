@@ -7,18 +7,18 @@ export async function sendVerificationEmail(email: string, code: string, name: s
     // In testing mode, Resend only allows sending to verified emails
     // We'll send to the verified email and include the actual recipient in the subject
     const { data, error } = await resend.emails.send({
-      from: 'TutorMarket <onboarding@resend.dev>',
+      from: 'Tutorly <onboarding@resend.dev>',
       to: ['tisegenene@gmail.com'], // Use verified email for testing
-      subject: `Verify your TutorMarket account - Code for ${email}`,
+      subject: `Verify your Tutorly account - Code for ${email}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #3b82f6; margin: 0;">TutorMarket</h1>
+            <h1 style="color: #3b82f6; margin: 0;">Tutorly</h1>
             <p style="color: #6b7280; margin: 10px 0 0 0;">Verify your email address</p>
           </div>
           
           <div style="background: #f9fafb; padding: 30px; border-radius: 10px; text-align: center;">
-            <h2 style="color: #1f2937; margin: 0 0 20px 0;">Welcome to TutorMarket, ${name}!</h2>
+            <h2 style="color: #1f2937; margin: 0 0 20px 0;">Welcome to Tutorly, ${name}!</h2>
             <p style="color: #4b5563; margin: 0 0 30px 0; line-height: 1.6;">
               Thank you for creating your account. To complete your registration, please enter the verification code below:
             </p>
@@ -66,13 +66,13 @@ export async function sendPasswordResetEmail(email: string, code: string, name: 
   try {
     // In testing mode, Resend only allows sending to verified emails
     const { data, error } = await resend.emails.send({
-      from: 'TutorMarket <onboarding@resend.dev>',
+      from: 'Tutorly <onboarding@resend.dev>',
       to: ['tisegenene@gmail.com'], // Use verified email for testing
-      subject: `Reset your TutorMarket password - Code for ${email}`,
+      subject: `Reset your Tutorly password - Code for ${email}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #3b82f6; margin: 0;">TutorMarket</h1>
+            <h1 style="color: #3b82f6; margin: 0;">Tutorly</h1>
             <p style="color: #6b7280; margin: 10px 0 0 0;">Password reset request</p>
           </div>
           

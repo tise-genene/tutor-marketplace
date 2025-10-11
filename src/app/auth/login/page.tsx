@@ -109,7 +109,7 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <Link href="/" className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              TutorMarket
+              Tutorly
             </Link>
             <h2 className="text-2xl font-bold text-gray-900 mt-6 mb-2">Welcome Back</h2>
             <p className="text-gray-600">Sign in to your account to continue</p>

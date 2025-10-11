@@ -28,7 +28,7 @@ function AuthErrorContent() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            TutorMarket
+            Tutorly
           </Link>
         </div>
 

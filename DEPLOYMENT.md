@@ -1,7 +1,7 @@
-# Tutor Marketplace - Production Deployment Guide
+# Tutorly - Production Deployment Guide
 
 ## Overview
-This guide will help you deploy the Tutor Marketplace application to production using Supabase for the backend and Vercel for the frontend.
+This guide will help you deploy the Tutorly application to production using Supabase for the backend and Vercel for the frontend.
 
 ## Prerequisites
 - [Supabase Account](https://supabase.com)
@@ -16,7 +16,7 @@ This guide will help you deploy the Tutor Marketplace application to production 
 2. Click "New Project"
 3. Choose your organization
 4. Enter project details:
-   - **Name**: `tutor-marketplace`
+   - **Name**: `tutorly`
    - **Database Password**: Generate a strong password
    - **Region**: Choose closest to your users
 5. Click "Create new project"

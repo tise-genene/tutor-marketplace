@@ -8,8 +8,8 @@ import { ConditionalLayout } from "@/components/layout/conditional-layout";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Tutor Marketplace",
-  description: "Find the perfect tutor for your learning journey",
+  title: "Tutorly - Find Your Perfect Tutor",
+  description: "Connect with qualified tutors in Ethiopia. Personalized learning experiences with expert guidance tailored just for you.",
 };
 
 export default function RootLayout({

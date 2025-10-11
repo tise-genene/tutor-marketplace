@@ -1,6 +1,6 @@
-# EthioTutor - Ethiopian Tutor Marketplace
+# Tutorly - Ethiopian Tutor Marketplace
 
-EthioTutor is a specialized platform connecting students with qualified tutors in Ethiopia. It's designed to make quality education accessible while providing opportunities for educators to share their knowledge.
+Tutorly is a modern platform connecting students with qualified tutors in Ethiopia. It's designed to make quality education accessible while providing opportunities for educators to share their knowledge.
 
 ## Features
 
@@ -50,8 +50,8 @@ EthioTutor is a specialized platform connecting students with qualified tutors i
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/tutor-marketplace.git
-   cd tutor-marketplace
+   git clone https://github.com/yourusername/tutorly.git
+   cd tutorly
    ```
 
 2. Install dependencies:
@@ -112,7 +112,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-For support, email support@ethiotutor.com or join our Slack channel.
+For support, email support@tutorly.et or join our Slack channel.
 
 ## Acknowledgments
 

@@ -69,7 +69,7 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative z-10 flex flex-col justify-center items-center text-white p-12">
           <div className="text-center max-w-md">
-            <h1 className="text-4xl font-bold mb-6">Join TutorMarket</h1>
+            <h1 className="text-4xl font-bold mb-6">Join Tutorly</h1>
             <p className="text-xl mb-8 text-green-100">
               Start your learning journey or share your expertise with students worldwide
             </p>
@@ -115,7 +115,7 @@ export default function RegisterPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <Link href="/" className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              TutorMarket
+              Tutorly
             </Link>
             <h2 className="text-2xl font-bold text-gray-900 mt-6 mb-2">Create Your Account</h2>
             <p className="text-gray-600">Join thousands of learners and tutors</p>

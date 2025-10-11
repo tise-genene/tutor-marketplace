@@ -8,7 +8,7 @@ export function Footer() {
           {/* Brand Section */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-4 inline-block">
-              TutorMarket
+              Tutorly
             </Link>
             <p className="text-gray-300 mb-6 max-w-md leading-relaxed">
               Connecting students with world-class tutors for personalized learning experiences. 
@@ -92,7 +92,7 @@ export function Footer() {
         <div className="border-t border-gray-700 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © 2024 TutorMarket. All rights reserved.
+              © 2024 Tutorly. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <span className="text-gray-400 text-sm">Made with ❤️ for better education</span>
