@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AITwinButton from "./components/AITwinButton";
 
 export default function Home() {
   return (
@@ -6,6 +7,12 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white overflow-hidden min-h-[90vh] flex items-center">
         <div className="absolute inset-0 bg-black opacity-10"></div>
+        {/* NEW: Vision Splash Banner Overhero */}
+        <div className="absolute top-0 left-0 w-full flex justify-center z-10">
+          <span className="inline-block bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 py-2 px-6 rounded-b-3xl shadow-xl text-white text-xl font-bold tracking-wide animate-pulse mt-0">
+            🚀 Tutorly: Where Every Human Tutor Gets an AI Twin (Africa First)
+          </span>
+        </div>
         <div className="absolute inset-0">
           <div className="absolute top-10 left-10 w-32 h-32 bg-white opacity-5 rounded-full blur-xl"></div>
           <div className="absolute bottom-20 right-20 w-48 h-48 bg-purple-300 opacity-10 rounded-full blur-2xl"></div>
@@ -16,42 +23,39 @@ export default function Home() {
           <div className="max-w-5xl mx-auto text-center">
             <div className="mb-8">
               <span className="inline-block bg-white bg-opacity-90 text-blue-700 text-sm font-bold px-6 py-3 rounded-full backdrop-blur-sm border border-white shadow-lg">
-                🎓 Join 10,000+ Students Learning Daily
+                🌍 Africa-born, global future: Human tutors meet AI twins
               </span>
             </div>
             
-            <h1 className="text-6xl md:text-8xl font-extrabold mb-8 leading-none">
-              Find Your Perfect
-              <span className="block bg-gradient-to-r from-yellow-300 via-orange-300 to-pink-300 bg-clip-text text-transparent">
-                Tutor
-              </span>
+            <h1 className="text-5xl md:text-7xl font-extrabold mb-8 leading-none">
+              <span className="block bg-gradient-to-r from-yellow-300 via-orange-300 to-pink-300 bg-clip-text text-transparent">The AI-Human Tutoring Network</span>
             </h1>
             
-            <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto text-blue-100 leading-relaxed">
-              Connect with world-class tutors for personalized learning. 
-              Master any subject with expert guidance tailored just for you.
+            <p className="text-2xl md:text-3xl mb-8 max-w-3xl mx-auto text-blue-100 leading-relaxed font-semibold">
+              Every tutor can now amplify their teaching with a 24/7 AI digital twin—unique to Tutorly.
+            </p>
+            {/* NEW Vision Statement */}
+            <p className="mb-10 max-w-2xl mx-auto text-lg text-blue-50 font-medium">
+              “Tutorly is building the world’s first decentralized network of human-AI tutors—where every educator can clone their style, and every learner gets a personal guide that never sleeps.”
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-              <Link 
-                href="/search" 
+            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-10">
+              <Link
+                href="/search"
                 className="group bg-white text-blue-700 px-12 py-5 rounded-2xl font-bold text-lg hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
               >
-                <span>Find a Tutor</span>
+                <span>Meet Human Tutors</span>
                 <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </Link>
-              
-              <Link 
-                href="/auth/register" 
-                className="group border-2 border-white text-white px-12 py-5 rounded-2xl font-bold text-lg hover:bg-white hover:text-blue-700 transition-all duration-300 backdrop-blur-sm hover:scale-105 flex items-center justify-center gap-3"
-              >
-                <span>Become a Tutor</span>
-                <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </Link>
+              {/* Client Component for AI Twin CTA */}
+              <AITwinButton />
+            </div>
+            <div className="text-center mt-6">
+              <div className="inline-flex items-center px-6 py-3 bg-white bg-opacity-20 rounded-2xl shadow-lg text-xl font-bold text-yellow-100 border border-white border-opacity-40 animate-pulse">
+                🌟 Human Empathy, AI Superpowers. For Everyone, Everywhere.
+              </div>
             </div>
             
             <div className="flex items-center justify-center gap-12 text-blue-200 text-lg">

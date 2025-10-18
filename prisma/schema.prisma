@@ -100,6 +100,8 @@ model TutorProfile {
   
   // Relations
   subjects    TutorSubject[]
+  materials   TutorMaterial[]
+  aiModels    AIModel[]
   
   @@index([location])
   @@index([rating])
@@ -279,4 +281,36 @@ enum CalendarEventStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+// --- AI Digital Twin (Tutor Clone) Support ---
+model TutorMaterial {
+  id          String   @id @default(cuid())
+  tutorId     String
+  tutor       TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  type        String   // e.g. DOC, AUDIO, VIDEO, SLIDES
+  subject     String   // E.g. 'Grade 10 Math'
+  fileUrl     String
+  description String?
+  tags        String?  // e.g. comma-separated for SQLite
+  createdAt   DateTime @default(now())
+
+  aiModels    AIModel[]
+  @@index([tutorId])
+}
+
+model AIModel {
+  id          String   @id @default(cuid())
+  tutorId     String
+  tutor       TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  status      String   // TRAINING, READY, ERROR, etc.
+  modelType   String   // e.g. gpt-4, llama-2
+  provider    String   // e.g. 'openai', 'local'
+  lastTrained DateTime?
+  endpointUrl String?
+  summary     String?
+  createdAt   DateTime @default(now())
+
+  tutorMaterials TutorMaterial[]
+  @@index([tutorId])
 }
