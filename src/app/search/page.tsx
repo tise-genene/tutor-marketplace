@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
 import { TutorCard } from '@/components/TutorCard';
 import { Search, SlidersHorizontal, LayoutGrid, List, Star, MapPin, DollarSign, Shield, BookOpen } from 'lucide-react';

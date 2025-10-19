@@ -1,6 +1,6 @@
 'use client';
 
-import { SessionProvider, useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 
 function AuthContent({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
@@ -18,8 +18,6 @@ function AuthContent({ children }: { children: React.ReactNode }) {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      <AuthContent>{children}</AuthContent>
-    </SessionProvider>
+    <AuthContent>{children}</AuthContent>
   );
 } 

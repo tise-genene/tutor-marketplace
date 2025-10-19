@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-client";
 
 interface Notification {
   id: string;

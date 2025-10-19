@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { createReviewSchema, getReviewsSchema } from '@/lib/validations/reviews';
 import { validateRequestBody, validateQuery } from '@/lib/validate-request';
 import { apiSuccess, ApiErrors } from '@/lib/api-response';
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   return withApiHandler(async (req) => {
-    const session = await getServerSession(authOptions);
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session) return ApiErrors.UNAUTHORIZED();
 
     const user = await prisma.user.findUnique({

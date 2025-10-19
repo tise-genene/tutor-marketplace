@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-client";
 import { useRouter, useParams } from 'next/navigation';
 import { Star, Calendar, MapPin, BookOpen, GraduationCap, Briefcase, MessageCircle, Shield, Clock } from 'lucide-react';
 import ReviewForm from '@/components/ReviewForm';

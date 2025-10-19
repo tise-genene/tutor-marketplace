@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut } from "@/lib/auth-client";
 import Link from 'next/link';
 import { Menu, Transition } from '@headlessui/react';
 import { UserCircleIcon } from '@heroicons/react/24/outline';

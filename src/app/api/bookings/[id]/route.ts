@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+
 import { supabase } from '@/lib/supabase';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 export async function PATCH(
   request: Request,
   { params }: any
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth.api.getSession({ headers: await headers() });
 
     if (!session) {
       return NextResponse.json(

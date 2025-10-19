@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Calendar, Clock, User, BookOpen, DollarSign, ArrowLeft } from 'lucide-react';
 import PaymentForm from '@/components/PaymentForm';

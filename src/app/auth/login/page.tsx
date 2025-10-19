@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { signIn } from "@/lib/auth-client"
 import Link from "next/link"
 import Image from "next/image"
 
