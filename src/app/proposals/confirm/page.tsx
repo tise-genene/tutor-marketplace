@@ -3,7 +3,7 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-client";
 import { Calendar, Clock, BookOpen, CreditCard } from 'lucide-react';
 import PaymentForm from '@/components/PaymentForm';
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSupabaseChat } from '@/hooks/useSupabaseChat';
-import { useSession } from 'next-auth/react';
+import { useSession } from "@/lib/auth-client";
 import { PaperAirplaneIcon, PaperClipIcon, MicrophoneIcon, StopIcon } from '@heroicons/react/24/outline';
 import { CheckIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 

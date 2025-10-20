@@ -1,91 +1,38 @@
-import type { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
-import { supabase } from '@/lib/supabase';
+import { betterAuth } from 'better-auth';
+import { nextCookies } from 'better-auth/next-js';
 
-export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
-  url: process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
-  providers: [
-    CredentialsProvider({
-      id: 'credentials',
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Please enter an email and password');
-        }
-
-        try {
-          // Get user from Supabase with email verification status
-          const { data: user, error } = await supabase
-            .from('users')
-            .select('id, name, email, password, role, email_verified')
-            .eq('email', credentials.email.toLowerCase())
-            .single();
-
-          if (error) {
-            console.error('Supabase error:', error);
-            throw new Error('Database error occurred');
-          }
-
-          if (!user) {
-            throw new Error('No user found with this email');
-          }
-
-          if (!user.password) {
-            throw new Error('Invalid user account');
-          }
-
-          // Check if email is verified
-          if (!user.email_verified) {
-            throw new Error('Please verify your email address before signing in. Check your email for a verification code.');
-          }
-
-          // Verify password
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-          if (!isPasswordValid) {
-            throw new Error('Invalid password');
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          } as any;
-        } catch (error) {
-          console.error('Auth error:', error);
-          throw error;
-        }
-      },
-    }),
+export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  plugins: [
+    nextCookies(),
   ],
-  session: { strategy: 'jwt' },
+  // Database configuration
+  database: {
+    provider: 'sqlite',
+    url: process.env.DATABASE_URL || 'file:./dev.db',
+  },
+  // User configuration
+  user: {
+    additionalFields: {
+      role: {
+        type: 'string',
+        required: true,
+      },
+    },
+  },
+  // Session configuration
+  session: {
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // 1 day
+  },
+  // Pages configuration
   pages: { 
     signIn: '/auth/login',
     error: '/auth/error'
   },
+  // Debug mode
   debug: false,
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = (user as any).role;
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session?.user) {
-        session.user.role = (token as any).role;
-        session.user.id = (token as any).id;
-      }
-      return session;
-    },
-  },
-};
+});
 
 

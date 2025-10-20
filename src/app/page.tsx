@@ -10,7 +10,7 @@ export default function Home() {
         {/* NEW: Vision Splash Banner Overhero */}
         <div className="absolute top-0 left-0 w-full flex justify-center z-10">
           <span className="inline-block bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 py-2 px-6 rounded-b-3xl shadow-xl text-white text-xl font-bold tracking-wide animate-pulse mt-0">
-            🚀 Tutorly: Where Every Human Tutor Gets an AI Twin (Africa First)
+            🚀 Tutorly: Where Every Human Tutor Gets an AI Twin.
           </span>
         </div>
         <div className="absolute inset-0">
@@ -23,7 +23,7 @@ export default function Home() {
           <div className="max-w-5xl mx-auto text-center">
             <div className="mb-8">
               <span className="inline-block bg-white bg-opacity-90 text-blue-700 text-sm font-bold px-6 py-3 rounded-full backdrop-blur-sm border border-white shadow-lg">
-                🌍 Africa-born, global future: Human tutors meet AI twins
+                Human tutors meet AI twins
               </span>
             </div>
             
