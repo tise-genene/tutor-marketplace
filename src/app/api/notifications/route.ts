@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 
-import { prisma } from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 import { auth } from '@/lib/auth';
 
 // GET /api/notifications - Get user notifications
@@ -9,18 +9,21 @@ export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
 
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user?.email as string },
-    });
+    // Get user from Supabase
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', session.user.id)
+      .single();
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json(
         { message: 'User not found' },
         { status: 404 }
@@ -31,41 +34,46 @@ export async function GET(request: Request) {
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
-
-    const where: any = { userId: user.id };
-    if (unreadOnly) {
-      where.read = false;
-    }
-
     const skip = (page - 1) * limit;
 
-    const [notifications, total, unreadCount] = await Promise.all([
-      prisma.notification.findMany({
-        where,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.notification.count({ where }),
-      prisma.notification.count({
-        where: {
-          userId: user.id,
-          read: false,
-        },
-      }),
-    ]);
+    // Build query
+    let query = supabase
+      .from('notifications')
+      .select('*', { count: 'exact' })
+      .eq('user_id', user.id);
+
+    if (unreadOnly) {
+      query = query.eq('read', false);
+    }
+
+    const { data: notifications, error: notificationsError, count } = await query
+      .order('created_at', { ascending: false })
+      .range(skip, skip + limit - 1);
+
+    if (notificationsError) {
+      console.error('Supabase error:', notificationsError);
+      return NextResponse.json(
+        { message: 'Something went wrong' },
+        { status: 500 }
+      );
+    }
+
+    // Get unread count
+    const { count: unreadCount } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
 
     return NextResponse.json({
-      notifications,
+      notifications: notifications || [],
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit),
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limit),
       },
-      unreadCount,
+      unreadCount: unreadCount || 0,
     });
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -89,14 +97,24 @@ export async function POST(request: Request) {
       );
     }
 
-    const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type: type as any,
+    const { data: notification, error: notificationError } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type,
         message,
-        relatedId: relatedId || null,
-      },
-    });
+        related_id: relatedId || null,
+      })
+      .select()
+      .single();
+
+    if (notificationError) {
+      console.error('Supabase error:', notificationError);
+      return NextResponse.json(
+        { message: 'Something went wrong' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(notification, { status: 201 });
   } catch (error) {
@@ -113,18 +131,21 @@ export async function PATCH(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
 
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { message: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user?.email as string },
-    });
+    // Get user from Supabase
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', session.user.id)
+      .single();
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json(
         { message: 'User not found' },
         { status: 404 }
@@ -136,26 +157,34 @@ export async function PATCH(request: Request) {
 
     if (markAllAsRead) {
       // Mark all notifications as read for the user
-      await prisma.notification.updateMany({
-        where: {
-          userId: user.id,
-          read: false,
-        },
-        data: {
-          read: true,
-        },
-      });
+      const { error: updateError } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (updateError) {
+        console.error('Supabase error:', updateError);
+        return NextResponse.json(
+          { message: 'Something went wrong' },
+          { status: 500 }
+        );
+      }
     } else if (notificationIds && Array.isArray(notificationIds)) {
       // Mark specific notifications as read
-      await prisma.notification.updateMany({
-        where: {
-          id: { in: notificationIds },
-          userId: user.id,
-        },
-        data: {
-          read: true,
-        },
-      });
+      const { error: updateError } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .in('id', notificationIds)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Supabase error:', updateError);
+        return NextResponse.json(
+          { message: 'Something went wrong' },
+          { status: 500 }
+        );
+      }
     } else {
       return NextResponse.json(
         { message: 'Invalid request. Provide notificationIds or set markAllAsRead to true.' },
