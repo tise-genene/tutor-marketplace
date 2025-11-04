@@ -6,6 +6,7 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from 'next/navigation';
+import { parseDate, toISOString, formatDateTime } from '@/lib/utils/date';
 
 const localizer = momentLocalizer(moment);
 
@@ -84,8 +85,8 @@ export default function CalendarPage() {
         const formattedEvents = data.events.map((event: CalendarEvent) => ({
           id: event.id,
           title: event.title,
-          start: new Date(event.start_time),
-          end: new Date(event.end_time),
+          start: parseDate(event.start_time) || new Date(),
+          end: parseDate(event.end_time) || new Date(),
           resource: event,
           className: getEventClassName(event),
         }));
@@ -168,8 +169,8 @@ export default function CalendarPage() {
         },
         body: JSON.stringify({
           title: eventData.title,
-          startTime: eventData.start.toISOString(),
-          endTime: eventData.end.toISOString(),
+          startTime: toISOString(eventData.start) || eventData.start.toISOString(),
+          endTime: toISOString(eventData.end) || eventData.end.toISOString(),
           type: 'CUSTOM',
         }),
       });
@@ -188,8 +189,8 @@ export default function CalendarPage() {
 Title: ${resource.title}
 Type: ${resource.type}
 Status: ${resource.status}
-Start: ${new Date(resource.start_time).toLocaleString()}
-End: ${new Date(resource.end_time).toLocaleString()}
+Start: ${formatDateTime(resource.start_time)}
+End: ${formatDateTime(resource.end_time)}
 ${resource.description ? `Description: ${resource.description}` : ''}
 ${resource.location ? `Location: ${resource.location}` : ''}
 ${resource.meeting_url ? `Meeting URL: ${resource.meeting_url}` : ''}

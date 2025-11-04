@@ -1,6 +1,7 @@
 'use client';
 
 import { Star } from 'lucide-react';
+import { formatDate } from '@/lib/utils/date';
 
 interface Review {
   id: string;
@@ -47,7 +48,7 @@ export default function ReviewList({ reviews }: ReviewListProps) {
                 ))}
               </div>
               <span className="text-sm text-gray-500">
-                {new Date(review.createdAt).toLocaleDateString()}
+                {formatDate(review.createdAt)}
               </span>
             </div>
             <span className="text-sm font-medium text-gray-900">
