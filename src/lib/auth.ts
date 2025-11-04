@@ -7,10 +7,10 @@ export const auth = betterAuth({
   plugins: [
     nextCookies(),
   ],
-  // Database configuration
+  // Database configuration - using PostgreSQL (Supabase)
   database: {
-    provider: 'sqlite',
-    url: process.env.DATABASE_URL || 'file:./dev.db',
+    provider: 'postgresql',
+    url: process.env.DATABASE_URL,
   },
   // User configuration
   user: {
@@ -32,7 +32,7 @@ export const auth = betterAuth({
     error: '/auth/error'
   },
   // Debug mode
-  debug: false,
+  debug: process.env.NODE_ENV === 'development',
 });
 
 
