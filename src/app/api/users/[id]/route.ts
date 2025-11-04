@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { headers } from 'next/headers';
 
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';

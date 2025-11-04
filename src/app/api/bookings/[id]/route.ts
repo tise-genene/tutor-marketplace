@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 
 import { supabase } from '@/lib/supabase';
 import { auth } from '@/lib/auth';

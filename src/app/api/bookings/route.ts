@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { supabase } from '@/lib/supabase';
 import { auth } from '@/lib/auth';
 import { createBookingSchema } from '@/lib/validations/bookings';
