@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import '@/lib/env'; // Validate environment variables on startup
 
 export default async function middleware(req: NextRequest) {
   // Check if the route requires authentication
