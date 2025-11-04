@@ -8,17 +8,25 @@ import { apiSuccess, apiError, ApiErrors } from "@/lib/api-response";
 import { sendVerificationEmail } from "@/lib/email";
 import { generateVerificationCode, getVerificationCodeExpiry } from "@/lib/utils/verification";
 
+// Validate Supabase environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error('Missing Supabase environment variables');
+}
+
 // Create Supabase client with service role key for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey ? createClient(
+  supabaseUrl,
+  supabaseServiceRoleKey,
   {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
   }
-);
+) : null;
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,7 +43,16 @@ export async function POST(request: NextRequest) {
       .from('users')
       .select('id')
       .eq('email', email.toLowerCase())
-      .single();
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Error checking existing user:", checkError);
+      return apiError(
+        "Failed to check user existence",
+        "CHECK_USER_ERROR",
+        500
+      );
+    }
 
     if (existingUser) {
       return apiError(
@@ -68,9 +85,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError) {
-      console.error("User creation error:", userError);
+      console.error("User creation error:", {
+        message: userError.message,
+        details: userError.details,
+        hint: userError.hint,
+        code: userError.code,
+      });
       return apiError(
-        "Failed to create user account",
+        `Failed to create user account: ${userError.message || 'Unknown error'}`,
         "USER_CREATION_FAILED",
         500
       );
@@ -86,7 +108,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Create profile based on role (using service role key to bypass RLS)
-    if (role === 'TUTOR') {
+    if (!supabaseAdmin) {
+      console.error("Supabase admin client not initialized - missing environment variables");
+      // Continue without profile creation - user can complete profile later
+    } else if (role === 'TUTOR') {
       const { error: tutorError } = await supabaseAdmin
         .from('tutor_profiles')
         .insert({
@@ -121,6 +146,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Registration error:", error);
-    return ApiErrors.INTERNAL_ERROR();
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return apiError(
+      `Registration failed: ${errorMessage}`,
+      "REGISTRATION_ERROR",
+      500
+    );
   }
 } 
