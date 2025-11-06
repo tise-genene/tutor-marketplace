@@ -15,8 +15,6 @@ export async function GET(request: NextRequest) {
       minRating, verified, page = 1, limit = 12, sortBy 
     } = validation.data as any;
 
-    const skip = (page - 1) * limit;
-    
     // Start with tutor_profiles as the main table (not users)
     let tutorsQuery = supabase
       .from('tutor_profiles')
@@ -72,9 +70,10 @@ export async function GET(request: NextRequest) {
         tutorsQuery = tutorsQuery.order('rating', { ascending: false });
     }
 
-    // Get tutors with count
-    const { data: tutors, error: tutorsError, count } = await tutorsQuery
-      .range(skip, skip + limit - 1);
+    // Fetch ALL tutors matching basic filters (without pagination)
+    // This is necessary because we need to apply subject/rate filters in memory
+    // and then paginate the filtered results
+    const { data: allTutors, error: tutorsError } = await tutorsQuery;
 
     if (tutorsError) {
       console.error('Error fetching tutors:', tutorsError);
@@ -82,7 +81,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter by subject IDs and rates in memory (since Supabase doesn't support nested filtering)
-    let filteredTutors = tutors || [];
+    let filteredTutors = allTutors || [];
     
     if (subjectIds && subjectIds.length > 0) {
       filteredTutors = filteredTutors.filter((tutor: any) => {
@@ -117,6 +116,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Calculate total count after all filters are applied
+    const totalCount = filteredTutors.length;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Apply pagination to the filtered results
+    const skip = (page - 1) * limit;
+    const paginatedTutors = filteredTutors.slice(skip, skip + limit);
+
     // Get all subjects for filter dropdowns
     const { data: subjects, error: subjectsError } = await supabase
       .from('subjects')
@@ -128,7 +135,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform response
-    const transformedTutors = filteredTutors.map((tutor: any) => {
+    const transformedTutors = paginatedTutors.map((tutor: any) => {
       const user = Array.isArray(tutor.users) ? tutor.users[0] : tutor.users;
       if (!user) return null;
 
@@ -166,8 +173,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: filteredTutors.length, // Use filtered count
-        pages: Math.ceil(filteredTutors.length / limit),
+        total: totalCount, // Use total count of all matching tutors
+        pages: totalPages,
       },
     });
   }, request);
