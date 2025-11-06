@@ -50,11 +50,11 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_WS_URL: z.string().url().optional(),
 });
 
-// Validate server environment variables
+  // Validate server environment variables
 const parsedServer = serverEnvSchema.safeParse({
   DATABASE_URL: process.env.DATABASE_URL,
-  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL,
+  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -86,8 +86,8 @@ const envInternal = parsedServer.data;
 // Production-specific validations
 if (envInternal.NODE_ENV === 'production') {
   const requiredForProduction = [
-    { key: 'BETTER_AUTH_SECRET', value: envInternal.BETTER_AUTH_SECRET || envInternal.NEXTAUTH_SECRET },
-    { key: 'BETTER_AUTH_URL', value: envInternal.BETTER_AUTH_URL || envInternal.NEXTAUTH_URL },
+    { key: 'BETTER_AUTH_SECRET', value: envInternal.BETTER_AUTH_SECRET },
+    { key: 'BETTER_AUTH_URL', value: envInternal.BETTER_AUTH_URL },
   ];
 
   const missing = requiredForProduction.filter((item) => !item.value);
@@ -122,8 +122,8 @@ export function validateEnv() {
     errors.push('DATABASE_URL is required');
   }
 
-  if (!env.BETTER_AUTH_SECRET && !env.NEXTAUTH_SECRET) {
-    errors.push('BETTER_AUTH_SECRET or NEXTAUTH_SECRET is required');
+  if (!env.BETTER_AUTH_SECRET) {
+    errors.push('BETTER_AUTH_SECRET is required');
   }
 
   if (errors.length > 0) {

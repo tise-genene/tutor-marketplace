@@ -69,10 +69,6 @@ DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.your-project-ref.supabase.
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=your-generated-secret-here
 
-# Legacy (optional)
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-generated-secret-here
-
 # Stripe (optional - for payments)
 STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...

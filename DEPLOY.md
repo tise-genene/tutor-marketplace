@@ -45,10 +45,6 @@ DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/
 # Better Auth
 BETTER_AUTH_URL=https://your-app.vercel.app
 BETTER_AUTH_SECRET=your-generated-secret-here
-
-# Legacy (optional - only for backward compatibility)
-# NEXTAUTH_URL=https://your-app.vercel.app  # Optional - BETTER_AUTH_URL is primary
-# NEXTAUTH_SECRET=your-generated-secret-here  # Optional - BETTER_AUTH_SECRET is primary
 ```
 
 #### Optional Variables:
@@ -195,12 +191,11 @@ docker run -p 3000:3000 \
 
 **Solution:**
 1. Go to **Vercel Dashboard → Your Project → Settings → Environment Variables**
-2. Find `NEXTAUTH_URL` in the list
-3. **Option A (Recommended):** Delete `NEXTAUTH_URL` entirely - it's optional since we use `BETTER_AUTH_URL` as primary
-4. **Option B:** Click on `NEXTAUTH_URL` → Change from "Secret" to "Plain" → Set value to your deployment URL (e.g., `https://your-app.vercel.app`)
-5. **Option C:** Create the secret `nextauth_url` in Vercel Secrets, then reference it
+2. Find `NEXTAUTH_URL` in the list and **delete it** - we no longer use NextAuth
+3. Ensure `BETTER_AUTH_URL` is set to your deployment URL (e.g., `https://your-app.vercel.app`)
+4. Ensure `BETTER_AUTH_SECRET` is set
 
-**Note:** `NEXTAUTH_URL` is only used as a fallback. The primary variable is `BETTER_AUTH_URL`. If neither is set, the app will use `VERCEL_URL` automatically.
+**Note:** We only use Better Auth now. `NEXTAUTH_URL` and `NEXTAUTH_SECRET` are not used. If `BETTER_AUTH_URL` is not set, the app will automatically use `VERCEL_URL`.
 
 ---
 
