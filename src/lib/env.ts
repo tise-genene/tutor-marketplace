@@ -8,6 +8,7 @@ const serverEnvSchema = z.object({
   // Better Auth (primary)
   BETTER_AUTH_SECRET: z.string().min(1, 'BETTER_AUTH_SECRET is required').optional(),
   BETTER_AUTH_URL: z.string().url('BETTER_AUTH_URL must be a valid URL').optional(),
+  NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url('NEXT_PUBLIC_BETTER_AUTH_URL must be a valid URL').optional(),
   
   // Legacy NextAuth (for compatibility)
   NEXTAUTH_SECRET: z.string().optional(),
@@ -48,6 +49,7 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   NEXT_PUBLIC_WS_URL: z.string().url().optional(),
+  NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url().optional(),
 });
 
   // Validate server environment variables
@@ -55,6 +57,7 @@ const parsedServer = serverEnvSchema.safeParse({
   DATABASE_URL: process.env.DATABASE_URL,
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+  NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -105,6 +108,7 @@ if (typeof window !== 'undefined') {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
+    NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
   });
 
   if (!parsedClient.success) {

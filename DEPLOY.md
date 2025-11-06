@@ -45,6 +45,7 @@ DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/
 # Better Auth
 BETTER_AUTH_URL=https://your-app.vercel.app
 BETTER_AUTH_SECRET=your-generated-secret-here
+NEXT_PUBLIC_BETTER_AUTH_URL=https://your-app.vercel.app  # Optional: client-side (falls back to window.location.origin)
 ```
 
 #### Optional Variables:

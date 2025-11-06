@@ -68,6 +68,7 @@ DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.your-project-ref.supabase.
 # Better Auth
 BETTER_AUTH_URL=http://localhost:3000
 BETTER_AUTH_SECRET=your-generated-secret-here
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000  # Optional: client-side (falls back to window.location.origin)
 
 # Stripe (optional - for payments)
 STRIPE_SECRET_KEY=sk_test_...
