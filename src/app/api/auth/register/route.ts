@@ -12,7 +12,13 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceRoleKey) {
-  console.error('Missing Supabase environment variables');
+  console.error('❌ Missing Supabase environment variables:');
+  console.error('  NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
+  console.error('  SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceRoleKey ? '✅ Set' : '❌ Missing');
+} else {
+  console.log('✅ Supabase environment variables loaded');
+  console.log('  URL:', supabaseUrl);
+  console.log('  Service Role Key:', supabaseServiceRoleKey.substring(0, 20) + '...');
 }
 
 // Create Supabase client with service role key for admin operations
@@ -55,9 +61,16 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (checkError) {
-      console.error("Error checking existing user:", checkError);
+      console.error("❌ Error checking existing user:", checkError);
+      console.error("  Error message:", checkError.message);
+      console.error("  Error details:", checkError.details);
+      console.error("  Supabase URL:", supabaseUrl);
+      console.error("  This usually means:");
+      console.error("    1. Wrong NEXT_PUBLIC_SUPABASE_URL in .env.local");
+      console.error("    2. Wrong SUPABASE_SERVICE_ROLE_KEY in .env.local");
+      console.error("    3. Network connectivity issue");
       return apiError(
-        "Failed to check user existence",
+        `Failed to check user existence: ${checkError.message || 'Connection failed'}`,
         "CHECK_USER_ERROR",
         500
       );
