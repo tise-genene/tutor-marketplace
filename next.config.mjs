@@ -8,6 +8,8 @@ const nextConfig = {
     // Keep TS checks enabled to catch real type issues
     ignoreBuildErrors: false,
   },
+  // Enable standalone output for Docker
+  output: 'standalone',
 };
 
 export default nextConfig;

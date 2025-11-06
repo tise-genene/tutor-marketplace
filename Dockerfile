@@ -1,38 +1,53 @@
 # syntax=docker/dockerfile:1
 
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Dockerfile reference guide at
-# https://docs.docker.com/go/dockerfile-reference/
-
-# Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
-
 ARG NODE_VERSION=20.17.0
 
-FROM node:${NODE_VERSION}-alpine
+FROM node:${NODE_VERSION}-alpine AS base
 
-# Use production node environment by default.
-ENV NODE_ENV production
-
-
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /usr/src/app
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.npm to speed up subsequent builds.
-# Leverage a bind mounts to package.json and package-lock.json to avoid having to copy them into
-# into this layer.
-RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=package-lock.json,target=package-lock.json \
-    --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+# Copy package files
+COPY package.json package-lock.json ./
 
-# Run the application as a non-root user.
-USER node
+# Install dependencies
+RUN npm ci
 
-# Copy the rest of the source files into the image.
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /usr/src/app
+COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-# Expose the port that the application listens on.
+# Generate Prisma Client (if needed) - only if prisma directory exists
+RUN if [ -f "prisma/schema.prisma" ]; then npx prisma generate; fi
+
+# Build Next.js
+ENV NEXT_TELEMETRY_DISABLED 1
+RUN npm run build
+
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /usr/src/app
+
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy necessary files from builder stage
+# Public directory is always present in Next.js projects (even if empty)
+COPY --from=builder --chown=nextjs:nodejs /usr/src/app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /usr/src/app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /usr/src/app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# Run the application.
-CMD npm run dev
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]

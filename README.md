@@ -5,46 +5,50 @@ Tutorly is a modern platform connecting students with qualified tutors in Ethiop
 ## Features
 
 - **User Authentication**
-  - Secure login and registration
-  - Role-based access (Student/Tutor)
+  - Secure login and registration with email verification
+  - Role-based access (Student/Tutor/Admin)
   - Profile management
 
 - **Tutor Features**
-  - Detailed tutor profiles
-  - Subject specialization
+  - Detailed tutor profiles with ratings and reviews
+  - Subject specialization with hourly rates
   - Availability management
-  - Session booking
+  - Session booking and calendar management
   - Earnings tracking
 
 - **Student Features**
-  - Search and filter tutors
+  - Advanced search and filter tutors
   - Book tutoring sessions
-  - Track learning progress
+  - Real-time messaging with tutors
   - Rate and review tutors
+  - Track booking history
 
 - **Platform Features**
-  - Real-time messaging
-  - Secure payments
-  - Session scheduling
-  - Review system
+  - Real-time messaging via Supabase Realtime
+  - Secure payments with Stripe
+  - Session scheduling and calendar integration
+  - Review and rating system
+  - Notification system
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14 with TypeScript
-- **Styling**: Tailwind CSS
-- **Database**: PostgreSQL
-- **ORM**: Prisma
-- **Authentication**: NextAuth.js
-- **Real-time**: Socket.io
+- **Frontend**: Next.js 15 with TypeScript
+- **Styling**: Tailwind CSS 4
+- **Database**: PostgreSQL (Supabase)
+- **Authentication**: Better Auth
+- **Real-time**: Supabase Realtime
 - **Payments**: Stripe
+- **Email**: Resend
+- **Date Handling**: date-fns
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- PostgreSQL database
+- Node.js 20+ and npm
+- Supabase account (free tier works)
 - Stripe account (for payments)
+- Resend account (for emails, optional)
 
 ### Installation
 
@@ -60,20 +64,32 @@ Tutorly is a modern platform connecting students with qualified tutors in Ethiop
    ```
 
 3. Set up environment variables:
-   Create a `.env` file in the root directory with the following variables:
-   ```
-   DATABASE_URL="postgresql://username:password@localhost:5432/tutor_marketplace"
-   NEXTAUTH_SECRET="your-secret-key"
-   NEXTAUTH_URL="http://localhost:3000"
-   STRIPE_SECRET_KEY="your-stripe-secret-key"
-   STRIPE_PUBLISHABLE_KEY="your-stripe-publishable-key"
+   Create a `.env.local` file in the root directory. See `SETUP.md` for detailed instructions.
+   
+   Required variables:
+   ```env
+   # Database (Supabase)
+   DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
+   NEXT_PUBLIC_SUPABASE_URL="https://[PROJECT-REF].supabase.co"
+   NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+   SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+
+   # Authentication
+   BETTER_AUTH_SECRET="your-generated-secret"
+   BETTER_AUTH_URL="http://localhost:3000"
+
+   # Stripe (optional)
+   STRIPE_SECRET_KEY="sk_test_..."
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+
+   # Email (optional)
+   RESEND_API_KEY="re_..."
    ```
 
-4. Initialize the database:
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
+4. Set up Supabase database:
+   - Create a new Supabase project
+   - Run the SQL schema from `supabase/schema.sql` in the Supabase SQL Editor
+   - Configure Row Level Security (RLS) policies as needed
 
 5. Start the development server:
    ```bash
@@ -87,16 +103,49 @@ The application will be available at `http://localhost:3000`.
 ```
 src/
 ├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   ├── (auth)/           # Authentication pages
-│   ├── dashboard/        # Dashboard pages
-│   ├── search/          # Search functionality
-│   └── tutor/           # Tutor-related pages
-├── components/           # Reusable components
-├── lib/                 # Utility functions
-├── providers/          # Context providers
-└── types/             # TypeScript types
+│   ├── api/               # API routes (Supabase)
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Dashboard pages
+│   ├── search/            # Search functionality
+│   ├── tutor/             # Tutor-related pages
+│   └── messages/          # Messaging pages
+├── components/            # Reusable React components
+│   ├── ui/                # UI primitives (Radix UI)
+│   └── layout/            # Layout components
+├── lib/                   # Utility functions
+│   ├── supabase.ts       # Supabase client
+│   ├── auth.ts           # Better Auth config
+│   ├── env.ts            # Environment validation
+│   └── utils/            # Helper utilities
+├── hooks/                 # Custom React hooks
+├── providers/            # Context providers
+└── types/                # TypeScript types
 ```
+
+## Deployment
+
+See `DEPLOY.md` for detailed deployment instructions.
+
+Quick deploy to Vercel:
+1. Push code to GitHub
+2. Import project in Vercel
+3. Add environment variables
+4. Deploy!
+
+## Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+### Code Style
+
+- TypeScript for type safety
+- ESLint for code quality
+- Prettier (recommended) for formatting
 
 ## Contributing
 
@@ -112,45 +161,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-For support, email support@tutorly.et or join our Slack channel.
+For support, email support@tutorly.et or open an issue on GitHub.
 
 ## Acknowledgments
 
 - Next.js team for the amazing framework
-- Prisma team for the excellent ORM
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Supabase for the backend infrastructure
+- Better Auth for authentication
+- Vercel for deployment platform
