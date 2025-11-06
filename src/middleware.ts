@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import '@/lib/env'; // Validate environment variables on startup
 
 export default async function middleware(req: NextRequest) {
   // Check if the route requires authentication
@@ -11,25 +9,21 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  try {
-    // Get session using Better Auth
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
+  // Check for Better Auth session cookie
+  // Better Auth uses various cookie names depending on configuration
+  const sessionToken = req.cookies.get('better-auth.session_token') || 
+                       req.cookies.get('better-auth.session-token') ||
+                       req.cookies.get('better-auth.sessionToken') ||
+                       req.cookies.get('session_token');
 
-    // If no session and trying to access protected route, redirect to login
-    if (!session?.user) {
-      const loginUrl = new URL('/auth/login', req.url);
-      loginUrl.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    return NextResponse.next();
-  } catch (error) {
-    console.error('Middleware error:', error);
+  // If no session cookie and trying to access protected route, redirect to login
+  if (!sessionToken) {
     const loginUrl = new URL('/auth/login', req.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
+
+  return NextResponse.next();
 }
 
 export const config = {
