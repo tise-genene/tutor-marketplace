@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { supabase } from '@/lib/supabase';
 import { searchTutorsSchema } from '@/lib/validations/search';
 import { validateQuery } from '@/lib/validate-request';
-import { apiSuccess } from '@/lib/api-response';
+import { apiSuccess, ApiErrors } from '@/lib/api-response';
 import { withApiHandler } from '@/lib/api-middleware';
 
 export async function GET(request: NextRequest) {
@@ -17,110 +17,109 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
     
-    // Build where clause
-    const where: any = {
-      role: 'TUTOR',
-      tutorProfile: { isNot: null },
-    };
+    // Build base query for tutors
+    let tutorsQuery = supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        email,
+        created_at,
+        tutor_profiles!inner(
+          id,
+          bio,
+          location,
+          rating,
+          total_reviews,
+          is_verified,
+          availability,
+          tutor_subjects(
+            hourly_rate,
+            experience,
+            subjects(id, name, category)
+          )
+        )
+      `)
+      .eq('role', 'TUTOR');
 
+    // Apply filters
     if (query) {
-      where.OR = [
-        { name: { contains: query, mode: 'insensitive' } },
-        { tutorProfile: { bio: { contains: query, mode: 'insensitive' } } },
-      ];
+      tutorsQuery = tutorsQuery.or(`name.ilike.%${query}%,tutor_profiles.bio.ilike.%${query}%`);
     }
 
     if (location) {
-      where.tutorProfile.location = {
-        contains: location,
-        mode: 'insensitive',
-      };
+      tutorsQuery = tutorsQuery.ilike('tutor_profiles.location', `%${location}%`);
     }
 
     if (minRating) {
-      where.tutorProfile.rating = { gte: minRating };
+      tutorsQuery = tutorsQuery.gte('tutor_profiles.rating', minRating);
     }
 
     if (verified !== undefined) {
-      where.tutorProfile.isVerified = verified;
+      tutorsQuery = tutorsQuery.eq('tutor_profiles.is_verified', verified);
     }
 
-    // Subject filtering with rate filtering
+    // Subject and rate filtering
     if (subjectIds && subjectIds.length > 0) {
-      const subjectWhere: any = {
-        subjectId: { in: subjectIds },
-      };
+      tutorsQuery = tutorsQuery.in('tutor_profiles.tutor_subjects.subject_id', subjectIds);
       
       if (minRate || maxRate) {
-        if (minRate) subjectWhere.hourlyRate = { gte: minRate };
+        if (minRate) {
+          tutorsQuery = tutorsQuery.gte('tutor_profiles.tutor_subjects.hourly_rate', minRate);
+        }
         if (maxRate) {
-          subjectWhere.hourlyRate = subjectWhere.hourlyRate 
-            ? { ...subjectWhere.hourlyRate, lte: maxRate }
-            : { lte: maxRate };
+          tutorsQuery = tutorsQuery.lte('tutor_profiles.tutor_subjects.hourly_rate', maxRate);
         }
       }
-
-      where.tutorProfile.subjects = {
-        some: subjectWhere,
-      };
     }
 
-    // Build orderBy
-    const orderBy: any = (() => {
-      switch (sortBy) {
-        case 'rating': return { tutorProfile: { rating: 'desc' } };
-        case 'price_asc': return { tutorProfile: { subjects: { _count: 'asc' } } }; // Fallback
-        case 'price_desc': return { tutorProfile: { subjects: { _count: 'desc' } } }; // Fallback
-        case 'newest': return { createdAt: 'desc' };
-        default: return { tutorProfile: { rating: 'desc' } };
-      }
-    })();
+    // Apply sorting
+    switch (sortBy) {
+      case 'rating':
+        tutorsQuery = tutorsQuery.order('tutor_profiles.rating', { ascending: false });
+        break;
+      case 'newest':
+        tutorsQuery = tutorsQuery.order('created_at', { ascending: false });
+        break;
+      default:
+        tutorsQuery = tutorsQuery.order('tutor_profiles.rating', { ascending: false });
+    }
 
-    // Execute queries in parallel
-    const [tutors, total, subjects] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        include: {
-          tutorProfile: {
-            include: {
-              subjects: {
-                include: { subject: true },
-                ...(minRate || maxRate ? {
-                  where: {
-                    ...(minRate && { hourlyRate: { gte: minRate } }),
-                    ...(maxRate && { hourlyRate: { lte: maxRate } }),
-                  }
-                } : {})
-              },
-            },
-          },
-        },
-        skip,
-        take: limit,
-        orderBy,
-      }),
-      prisma.user.count({ where }),
-      prisma.subject.findMany({
-        select: { id: true, name: true, category: true },
-        orderBy: { name: 'asc' },
-      }),
-    ]);
+    // Get tutors with count
+    const { data: tutors, error: tutorsError, count } = await tutorsQuery
+      .range(skip, skip + limit - 1);
+
+    if (tutorsError) {
+      console.error('Error fetching tutors:', tutorsError);
+      return ApiErrors.INTERNAL_ERROR();
+    }
+
+    // Get all subjects for filter dropdowns
+    const { data: subjects, error: subjectsError } = await supabase
+      .from('subjects')
+      .select('id, name, category')
+      .order('name', { ascending: true });
+
+    if (subjectsError) {
+      console.error('Error fetching subjects:', subjectsError);
+    }
 
     // Transform response
-    const transformedTutors = tutors.map((tutor) => {
-      const profile = tutor.tutorProfile!;
-      
-      // Calculate average rate and subjects
-      const subjects = profile.subjects.map(ts => ({
-        id: ts.subject.id,
-        name: ts.subject.name,
-        category: ts.subject.category,
-        hourlyRate: ts.hourlyRate,
-        experience: ts.experience,
-      }));
+    const transformedTutors = (tutors || []).map((tutor: any) => {
+      const profile = tutor.tutor_profiles?.[0];
+      if (!profile) return null;
+
+      const tutorSubjects = profile.tutor_subjects || [];
+      const subjects = tutorSubjects.map((ts: any) => ({
+        id: ts.subjects?.id,
+        name: ts.subjects?.name,
+        category: ts.subjects?.category,
+        hourlyRate: parseFloat(ts.hourly_rate) || 0,
+        experience: ts.experience || 0,
+      })).filter((s: any) => s.id);
 
       const avgRate = subjects.length > 0 
-        ? subjects.reduce((sum, s) => sum + s.hourlyRate, 0) / subjects.length
+        ? subjects.reduce((sum: number, s: any) => sum + s.hourlyRate, 0) / subjects.length
         : 0;
 
       return {
@@ -128,24 +127,24 @@ export async function GET(request: NextRequest) {
         name: tutor.name,
         bio: profile.bio,
         location: profile.location,
-        rating: profile.rating,
-        totalReviews: profile.totalReviews,
-        isVerified: profile.isVerified,
+        rating: parseFloat(profile.rating) || 0,
+        totalReviews: profile.total_reviews || 0,
+        isVerified: profile.is_verified || false,
         subjects,
         averageRate: Math.round(avgRate * 100) / 100,
         availability: profile.availability,
-        createdAt: tutor.createdAt,
+        createdAt: tutor.created_at,
       };
-    });
+    }).filter(Boolean);
 
     return apiSuccess({
       tutors: transformedTutors,
-      subjects, // For filter options
+      subjects: subjects || [],
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit),
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limit),
       },
     });
   }, request);
@@ -154,27 +153,31 @@ export async function GET(request: NextRequest) {
 // Get all subjects for filter dropdowns
 export async function POST(request: NextRequest) {
   return withApiHandler(async () => {
-    const subjects = await prisma.subject.findMany({
-      include: {
-        _count: {
-          select: { tutorSubjects: true },
-        },
-      },
-      orderBy: [
-        { category: 'asc' },
-        { name: 'asc' },
-      ],
-    });
+    const { data: subjects, error } = await supabase
+      .from('subjects')
+      .select(`
+        id,
+        name,
+        category,
+        tutor_subjects(count)
+      `)
+      .order('category', { ascending: true })
+      .order('name', { ascending: true });
 
-    const categorized = subjects.reduce((acc, subject) => {
+    if (error) {
+      console.error('Error fetching subjects:', error);
+      return ApiErrors.INTERNAL_ERROR();
+    }
+
+    const categorized = (subjects || []).reduce((acc: Record<string, any[]>, subject: any) => {
       if (!acc[subject.category]) acc[subject.category] = [];
       acc[subject.category].push({
         id: subject.id,
         name: subject.name,
-        tutorCount: subject._count.tutorSubjects,
+        tutorCount: subject.tutor_subjects?.[0]?.count || 0,
       });
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {});
 
     return apiSuccess({ subjects: categorized });
   }, request);
