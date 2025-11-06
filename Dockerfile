@@ -20,8 +20,8 @@ WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client (if needed)
-RUN npx prisma generate || true
+# Generate Prisma Client (if needed) - only if prisma directory exists
+RUN if [ -f "prisma/schema.prisma" ]; then npx prisma generate; fi
 
 # Build Next.js
 ENV NEXT_TELEMETRY_DISABLED 1
@@ -37,10 +37,11 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy necessary files
-COPY --from=builder /usr/src/app/public ./public
-COPY --from=builder /usr/src/app/.next/standalone ./
-COPY --from=builder /usr/src/app/.next/static ./.next/static
+# Copy necessary files from builder stage
+# Public directory is always present in Next.js projects (even if empty)
+COPY --from=builder --chown=nextjs:nodejs /usr/src/app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /usr/src/app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /usr/src/app/.next/static ./.next/static
 
 USER nextjs
 

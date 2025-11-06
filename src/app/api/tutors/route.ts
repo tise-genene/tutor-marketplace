@@ -17,72 +17,59 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
     
-    // Build base query for tutors
+    // Start with tutor_profiles as the main table (not users)
     let tutorsQuery = supabase
-      .from('users')
+      .from('tutor_profiles')
       .select(`
         id,
-        name,
-        email,
+        bio,
+        location,
+        rating,
+        total_reviews,
+        is_verified,
+        availability,
         created_at,
-        tutor_profiles!inner(
+        users!inner(
           id,
-          bio,
-          location,
-          rating,
-          total_reviews,
-          is_verified,
-          availability,
-          tutor_subjects(
-            hourly_rate,
-            experience,
-            subjects(id, name, category)
-          )
+          name,
+          email,
+          created_at
+        ),
+        tutor_subjects(
+          hourly_rate,
+          experience,
+          subjects(id, name, category)
         )
       `)
-      .eq('role', 'TUTOR');
+      .eq('users.role', 'TUTOR');
 
-    // Apply filters
+    // Apply filters on tutor_profiles (main table)
     if (query) {
-      tutorsQuery = tutorsQuery.or(`name.ilike.%${query}%,tutor_profiles.bio.ilike.%${query}%`);
+      tutorsQuery = tutorsQuery.or(`bio.ilike.%${query}%,users.name.ilike.%${query}%`);
     }
 
     if (location) {
-      tutorsQuery = tutorsQuery.ilike('tutor_profiles.location', `%${location}%`);
+      tutorsQuery = tutorsQuery.ilike('location', `%${location}%`);
     }
 
     if (minRating) {
-      tutorsQuery = tutorsQuery.gte('tutor_profiles.rating', minRating);
+      tutorsQuery = tutorsQuery.gte('rating', minRating);
     }
 
     if (verified !== undefined) {
-      tutorsQuery = tutorsQuery.eq('tutor_profiles.is_verified', verified);
+      tutorsQuery = tutorsQuery.eq('is_verified', verified);
     }
 
-    // Subject and rate filtering
-    if (subjectIds && subjectIds.length > 0) {
-      tutorsQuery = tutorsQuery.in('tutor_profiles.tutor_subjects.subject_id', subjectIds);
-      
-      if (minRate || maxRate) {
-        if (minRate) {
-          tutorsQuery = tutorsQuery.gte('tutor_profiles.tutor_subjects.hourly_rate', minRate);
-        }
-        if (maxRate) {
-          tutorsQuery = tutorsQuery.lte('tutor_profiles.tutor_subjects.hourly_rate', maxRate);
-        }
-      }
-    }
-
-    // Apply sorting
+    // Apply sorting on main table columns
     switch (sortBy) {
       case 'rating':
-        tutorsQuery = tutorsQuery.order('tutor_profiles.rating', { ascending: false });
+        tutorsQuery = tutorsQuery.order('rating', { ascending: false });
         break;
       case 'newest':
         tutorsQuery = tutorsQuery.order('created_at', { ascending: false });
         break;
       default:
-        tutorsQuery = tutorsQuery.order('tutor_profiles.rating', { ascending: false });
+        tutorsQuery = tutorsQuery.order('rating', { ascending: false });
     }
 
     // Get tutors with count
@@ -92,6 +79,42 @@ export async function GET(request: NextRequest) {
     if (tutorsError) {
       console.error('Error fetching tutors:', tutorsError);
       return ApiErrors.INTERNAL_ERROR();
+    }
+
+    // Filter by subject IDs and rates in memory (since Supabase doesn't support nested filtering)
+    let filteredTutors = tutors || [];
+    
+    if (subjectIds && subjectIds.length > 0) {
+      filteredTutors = filteredTutors.filter((tutor: any) => {
+        const tutorSubjects = tutor.tutor_subjects || [];
+        const hasMatchingSubject = tutorSubjects.some((ts: any) => {
+          const subjectId = ts.subjects?.id;
+          if (!subjectIds.includes(subjectId)) return false;
+          
+          // Check rate filters if provided
+          const rate = parseFloat(ts.hourly_rate) || 0;
+          if (minRate && rate < minRate) return false;
+          if (maxRate && rate > maxRate) return false;
+          
+          return true;
+        });
+        return hasMatchingSubject;
+      });
+    } else if (minRate || maxRate) {
+      // If no subject filter but rate filter, check average rate
+      filteredTutors = filteredTutors.filter((tutor: any) => {
+        const tutorSubjects = tutor.tutor_subjects || [];
+        if (tutorSubjects.length === 0) return false;
+        
+        const avgRate = tutorSubjects.reduce((sum: number, ts: any) => {
+          return sum + (parseFloat(ts.hourly_rate) || 0);
+        }, 0) / tutorSubjects.length;
+        
+        if (minRate && avgRate < minRate) return false;
+        if (maxRate && avgRate > maxRate) return false;
+        
+        return true;
+      });
     }
 
     // Get all subjects for filter dropdowns
@@ -105,11 +128,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform response
-    const transformedTutors = (tutors || []).map((tutor: any) => {
-      const profile = tutor.tutor_profiles?.[0];
-      if (!profile) return null;
+    const transformedTutors = filteredTutors.map((tutor: any) => {
+      const user = Array.isArray(tutor.users) ? tutor.users[0] : tutor.users;
+      if (!user) return null;
 
-      const tutorSubjects = profile.tutor_subjects || [];
+      const tutorSubjects = tutor.tutor_subjects || [];
       const subjects = tutorSubjects.map((ts: any) => ({
         id: ts.subjects?.id,
         name: ts.subjects?.name,
@@ -123,17 +146,17 @@ export async function GET(request: NextRequest) {
         : 0;
 
       return {
-        id: tutor.id,
-        name: tutor.name,
-        bio: profile.bio,
-        location: profile.location,
-        rating: parseFloat(profile.rating) || 0,
-        totalReviews: profile.total_reviews || 0,
-        isVerified: profile.is_verified || false,
+        id: user.id,
+        name: user.name,
+        bio: tutor.bio,
+        location: tutor.location,
+        rating: parseFloat(tutor.rating) || 0,
+        totalReviews: tutor.total_reviews || 0,
+        isVerified: tutor.is_verified || false,
         subjects,
         averageRate: Math.round(avgRate * 100) / 100,
-        availability: profile.availability,
-        createdAt: tutor.created_at,
+        availability: tutor.availability,
+        createdAt: user.created_at,
       };
     }).filter(Boolean);
 
@@ -143,8 +166,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: count || 0,
-        pages: Math.ceil((count || 0) / limit),
+        total: filteredTutors.length, // Use filtered count
+        pages: Math.ceil(filteredTutors.length / limit),
       },
     });
   }, request);
@@ -153,20 +176,28 @@ export async function GET(request: NextRequest) {
 // Get all subjects for filter dropdowns
 export async function POST(request: NextRequest) {
   return withApiHandler(async () => {
-    const { data: subjects, error } = await supabase
+    // Use a separate query to count tutors per subject
+    const { data: subjects, error: subjectsError } = await supabase
       .from('subjects')
-      .select(`
-        id,
-        name,
-        category,
-        tutor_subjects(count)
-      `)
+      .select('id, name, category')
       .order('category', { ascending: true })
       .order('name', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching subjects:', error);
+    if (subjectsError) {
+      console.error('Error fetching subjects:', subjectsError);
       return ApiErrors.INTERNAL_ERROR();
+    }
+
+    // Get tutor counts per subject
+    const { data: tutorSubjects, error: tutorSubjectsError } = await supabase
+      .from('tutor_subjects')
+      .select('subject_id');
+
+    const tutorCounts: Record<string, number> = {};
+    if (!tutorSubjectsError && tutorSubjects) {
+      tutorSubjects.forEach((ts: any) => {
+        tutorCounts[ts.subject_id] = (tutorCounts[ts.subject_id] || 0) + 1;
+      });
     }
 
     const categorized = (subjects || []).reduce((acc: Record<string, any[]>, subject: any) => {
@@ -174,7 +205,7 @@ export async function POST(request: NextRequest) {
       acc[subject.category].push({
         id: subject.id,
         name: subject.name,
-        tutorCount: subject.tutor_subjects?.[0]?.count || 0,
+        tutorCount: tutorCounts[subject.id] || 0,
       });
       return acc;
     }, {});
