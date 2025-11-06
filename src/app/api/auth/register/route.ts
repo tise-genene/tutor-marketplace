@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { supabase } from "@/lib/supabase";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
 import { registerSchema } from "@/lib/validations/auth";
@@ -38,8 +37,18 @@ export async function POST(request: NextRequest) {
 
     const { name, email, password, role } = validation.data;
 
-    // Check if user already exists
-    const { data: existingUser, error: checkError } = await supabase
+    // Use admin client for user operations (bypasses RLS)
+    if (!supabaseAdmin) {
+      console.error("Supabase admin client not initialized - missing environment variables");
+      return apiError(
+        "Server configuration error: Missing Supabase service role key",
+        "CONFIG_ERROR",
+        500
+      );
+    }
+
+    // Check if user already exists (using admin client)
+    const { data: existingUser, error: checkError } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('email', email.toLowerCase())
@@ -69,8 +78,8 @@ export async function POST(request: NextRequest) {
     const verificationCode = generateVerificationCode();
     const verificationExpiry = getVerificationCodeExpiry();
 
-    // Create user with email verification required
-    const { data: user, error: userError } = await supabase
+    // Create user with email verification required (using admin client)
+    const { data: user, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
         name: name.trim(),
@@ -107,11 +116,8 @@ export async function POST(request: NextRequest) {
       // User can request resend later
     }
 
-    // Create profile based on role (using service role key to bypass RLS)
-    if (!supabaseAdmin) {
-      console.error("Supabase admin client not initialized - missing environment variables");
-      // Continue without profile creation - user can complete profile later
-    } else if (role === 'TUTOR') {
+    // Create profile based on role (using admin client)
+    if (role === 'TUTOR') {
       const { error: tutorError } = await supabaseAdmin
         .from('tutor_profiles')
         .insert({
