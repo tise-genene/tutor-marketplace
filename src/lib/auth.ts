@@ -2,8 +2,8 @@ import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 
 export const auth = betterAuth({
-  secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
   plugins: [
     nextCookies(),
   ],
