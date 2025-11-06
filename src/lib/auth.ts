@@ -16,7 +16,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const auth = betterAuth({
+// Log database URL (without password) for debugging
+const dbUrl = process.env.DATABASE_URL;
+const dbUrlSafe = dbUrl ? dbUrl.replace(/:[^:@]+@/, ':****@') : 'not set';
+console.log('🔐 Better Auth initializing with database:', dbUrlSafe);
+
+let auth;
+try {
+  auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
   plugins: [
@@ -48,6 +55,21 @@ export const auth = betterAuth({
   },
   // Debug mode
   debug: process.env.NODE_ENV === 'development',
-});
+  });
+  console.log('✅ Better Auth initialized successfully');
+} catch (error: any) {
+  console.error('❌ Better Auth initialization failed:', error);
+  console.error('Error details:', {
+    message: error?.message,
+    stack: error?.stack,
+    cause: error?.cause,
+  });
+  throw new Error(
+    `Failed to initialize Better Auth: ${error?.message || 'Unknown error'}\n` +
+    'Check your DATABASE_URL and ensure the database is accessible.'
+  );
+}
+
+export { auth };
 
 
