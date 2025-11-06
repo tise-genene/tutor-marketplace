@@ -129,6 +129,54 @@ export async function POST(request: NextRequest) {
       // User can request resend later
     }
 
+    // Create Better Auth user (required for login to work)
+    // Better Auth uses its own user table and account table for credentials
+    // Convert UUID to string for Better Auth (it uses TEXT, not UUID)
+    const betterAuthUserId = String(user.id);
+    
+    try {
+      // Create Better Auth user
+      const { error: betterAuthUserError } = await supabaseAdmin
+        .from('user')
+        .insert({
+          id: betterAuthUserId,
+          name: name.trim(),
+          email: email.toLowerCase(),
+          email_verified: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (betterAuthUserError) {
+        console.error("Better Auth user creation error:", betterAuthUserError);
+        // Continue anyway - user can still use the app
+      }
+
+      // Create Better Auth account with password (for credentials login)
+      // Better Auth stores passwords in the account table with provider_id: "credential"
+      const { error: betterAuthAccountError } = await supabaseAdmin
+        .from('account')
+        .insert({
+          id: `${betterAuthUserId}-credential`,
+          account_id: email.toLowerCase(),
+          provider_id: 'credential',
+          user_id: betterAuthUserId,
+          password: hashedPassword, // Better Auth expects hashed password
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (betterAuthAccountError) {
+        console.error("Better Auth account creation error:", betterAuthAccountError);
+        // Continue anyway - user can still use the app
+      } else {
+        console.log("✅ Better Auth user and account created successfully");
+      }
+    } catch (betterAuthError) {
+      console.error("Error creating Better Auth user:", betterAuthError);
+      // Continue anyway - registration succeeded, just Better Auth sync failed
+    }
+
     // Create profile based on role (using admin client)
     if (role === 'TUTOR') {
       const { error: tutorError } = await supabaseAdmin
