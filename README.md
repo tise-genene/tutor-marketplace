@@ -54,7 +54,7 @@ Tutorly is a modern platform connecting students with qualified tutors in Ethiop
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/tutorly.git
+   git clone https://github.com/tise-genene/tutorly.git
    cd tutorly
    ```
 
