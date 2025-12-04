@@ -77,10 +77,10 @@ export function TutorCard({
                 ))}
               </div>
               <div className="flex gap-2">
-                <Link href={`/tutor/${id}`} className="px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-xl font-semibold hover:bg-blue-50">
+                <Link href={`/tutor/${id}`} className="px-4 py-2 border border-slate-300 text-slate-900 rounded-lg font-semibold hover:bg-slate-50">
                   View Profile
                 </Link>
-                <Link href={`/tutor/${id}/hire`} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700">
+                <Link href={`/tutor/${id}/hire`} className="px-4 py-2 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800">
                   Hire
                 </Link>
               </div>
@@ -122,7 +122,7 @@ export function TutorCard({
         <div className="p-6">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+              <h3 className="text-xl font-semibold text-slate-900 group-hover:text-slate-700 transition-colors">
                 {name}
               </h3>
               <div className="flex items-center gap-1 mt-1">
@@ -189,13 +189,13 @@ export function TutorCard({
           <div className="flex gap-3">
             <Link 
               href={`/tutor/${id}`}
-              className="flex-1 border-2 border-blue-600 text-blue-600 font-bold py-3 px-4 rounded-xl hover:bg-blue-50 transition-all duration-300 text-center"
+              className="flex-1 border border-slate-300 text-slate-900 font-semibold py-3 px-4 rounded-lg hover:bg-slate-50 transition-all duration-200 text-center"
             >
               View Profile
             </Link>
             <Link 
               href={`/tutor/${id}/hire`}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 group-hover:shadow-lg text-center"
+              className="flex-1 bg-slate-900 text-white font-semibold py-3 px-4 rounded-lg hover:bg-slate-800 transition-all duration-200 shadow-md hover:shadow-lg text-center"
             >
               Hire
             </Link>

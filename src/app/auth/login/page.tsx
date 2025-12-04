@@ -22,13 +22,38 @@ export default function LoginPage() {
     const password = formData.get("password") as string
 
     try {
-      const result = await signIn("credentials", {
+      const result = await signIn.email({
         email,
         password,
-        redirect: false,
       })
 
+      console.log("Login result:", result);
+
+      // Check for errors in different formats
       if (result?.error) {
+        const errorMessage = 
+          result.error?.message || 
+          result.error?.code || 
+          (typeof result.error === 'string' ? result.error : null) ||
+          JSON.stringify(result.error) ||
+          "Invalid email or password";
+        
+        console.error("Login error:", {
+          error: result.error,
+          fullResult: result,
+        });
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Check if result indicates failure
+      if (!result || result.status === 'error') {
+        console.error("Login failed:", result);
         toast({
           title: "Error",
           description: "Invalid email or password",
@@ -43,12 +68,20 @@ export default function LoginPage() {
         description: "Login successful! Redirecting...",
       })
       
-      // Use window.location for a full page redirect to avoid NextAuth issues
+      // Use window.location for a full page redirect
       window.location.href = "/dashboard"
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Login exception:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+        cause: error?.cause,
+      });
+      
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -59,47 +92,41 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Image */}
-      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-blue-600 to-purple-700 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
+      <div className="hidden md:flex md:w-1/2 bg-slate-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
         <div className="relative z-10 flex flex-col justify-center items-center text-white p-12">
           <div className="text-center max-w-md">
             <h1 className="text-4xl font-bold mb-6">Welcome Back</h1>
-            <p className="text-xl mb-8 text-blue-100">
+            <p className="text-lg mb-8 text-slate-300">
               Connect with expert tutors and accelerate your learning journey
             </p>
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-6 h-6 bg-white/10 rounded flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span>Access to thousands of qualified tutors</span>
+                <span className="text-slate-200">Access to thousands of qualified tutors</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-6 h-6 bg-white/10 rounded flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span>Flexible scheduling and secure payments</span>
+                <span className="text-slate-200">Flexible scheduling and secure payments</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-6 h-6 bg-white/10 rounded flex items-center justify-center">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span>Track your progress and achievements</span>
+                <span className="text-slate-200">Track your progress and achievements</span>
               </div>
             </div>
           </div>
-        </div>
-        {/* Abstract background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-32 h-32 bg-white rounded-full"></div>
-          <div className="absolute bottom-20 right-20 w-24 h-24 bg-white rounded-full"></div>
-          <div className="absolute top-1/2 left-1/3 w-16 h-16 bg-white rounded-full"></div>
         </div>
       </div>
 
@@ -108,11 +135,11 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
-            <Link href="/" className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <Link href="/" className="text-3xl font-bold text-slate-900">
               Tutorly
             </Link>
-            <h2 className="text-2xl font-bold text-gray-900 mt-6 mb-2">Welcome Back</h2>
-            <p className="text-gray-600">Sign in to your account to continue</p>
+            <h2 className="text-2xl font-semibold text-slate-900 mt-6 mb-2">Welcome Back</h2>
+            <p className="text-slate-600">Sign in to your account to continue</p>
           </div>
 
           {/* Login Form */}
@@ -129,7 +156,7 @@ export default function LoginPage() {
                   placeholder="Enter your email"
                   required
                   disabled={isLoading}
-                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500 text-gray-900"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all duration-200 placeholder-slate-400 text-slate-900"
                 />
               </div>
               
@@ -144,7 +171,7 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   required
                   disabled={isLoading}
-                  className="w-full bg-white border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder-gray-500 text-gray-900"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all duration-200 placeholder-slate-400 text-slate-900"
                 />
               </div>
               
@@ -154,13 +181,13 @@ export default function LoginPage() {
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-slate-900 focus:ring-slate-900 border-slate-300 rounded"
                   />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700">
                     Remember me
                   </label>
                 </div>
-                <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
+                <Link href="/auth/forgot-password" className="text-sm text-slate-600 hover:text-slate-900">
                   Forgot password?
                 </Link>
               </div>
@@ -168,7 +195,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                className="w-full bg-slate-900 text-white py-3 px-4 rounded-lg font-semibold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -190,9 +217,9 @@ export default function LoginPage() {
             </form>
             
             <div className="mt-6 text-center">
-              <p className="text-gray-600">
+              <p className="text-slate-600">
                 Don't have an account?{" "}
-                <Link href="/auth/register" className="text-blue-600 hover:text-blue-500 font-semibold">
+                <Link href="/auth/register" className="text-slate-900 hover:text-slate-700 font-semibold">
                   Sign up
                 </Link>
               </p>

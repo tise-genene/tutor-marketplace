@@ -53,7 +53,7 @@ export function Navigation() {
         <div className="flex justify-between h-20">
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <Link href="/" className="text-3xl font-bold text-slate-900">
                 Tutorly
               </Link>
             </div>
@@ -61,7 +61,7 @@ export function Navigation() {
               {/* Public links - always visible */}
               <Link
                 href="/auth/register?role=TUTOR"
-                className="text-gray-700 hover:text-green-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-green-50"
+                className="text-slate-700 hover:text-slate-900 inline-flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-lg hover:bg-slate-100"
               >
                 Become a Tutor
               </Link>
@@ -71,27 +71,27 @@ export function Navigation() {
                 <>
                   <Link
                     href="/search"
-                    className="text-gray-700 hover:text-blue-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-blue-50"
+                    className="text-slate-700 hover:text-slate-900 inline-flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-lg hover:bg-slate-100"
                   >
                     Find Tutors
                   </Link>
                   {session.user?.role === 'TUTOR' && (
                     <Link
                       href="/dashboard"
-                      className="text-gray-700 hover:text-purple-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-purple-50"
+                      className="text-slate-700 hover:text-slate-900 inline-flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-lg hover:bg-slate-100"
                     >
                       Dashboard
                     </Link>
                   )}
                   <Link
                     href="/proposals"
-                    className="text-gray-700 hover:text-blue-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-blue-50"
+                    className="text-slate-700 hover:text-slate-900 inline-flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-lg hover:bg-slate-100"
                   >
                     Proposals
                   </Link>
                   <Link
                     href="/calendar"
-                    className="text-gray-700 hover:text-green-600 inline-flex items-center px-4 py-2 text-sm font-semibold transition-colors duration-200 rounded-lg hover:bg-green-50"
+                    className="text-slate-700 hover:text-slate-900 inline-flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-lg hover:bg-slate-100"
                   >
                     <Calendar className="w-4 h-4 mr-2" />
                     Calendar
@@ -168,13 +168,13 @@ export function Navigation() {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/auth/login"
-                  className="text-gray-700 hover:text-blue-600 px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-200"
+                  className="text-slate-700 hover:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
                 >
                   Sign in
                 </Link>
                 <Link
                   href="/auth/register"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="bg-slate-900 text-white hover:bg-slate-800 px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   Get Started
                 </Link>
