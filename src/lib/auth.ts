@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
+import { Pool } from 'pg';
 
 // Validate required environment variables before initializing Better Auth
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -21,6 +22,15 @@ const dbUrl = process.env.DATABASE_URL;
 const dbUrlSafe = dbUrl ? dbUrl.replace(/:[^:@]+@/, ':****@') : 'not set';
 console.log('🔐 Better Auth initializing with database:', dbUrlSafe);
 
+// Create PostgreSQL connection pool with SSL for Supabase
+// Better Auth needs a Pool instance with SSL configuration for Supabase
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes('supabase') ? {
+    rejectUnauthorized: false // Supabase uses self-signed certificates
+  } : undefined,
+});
+
 let auth;
 try {
   auth = betterAuth({
@@ -29,11 +39,8 @@ try {
   plugins: [
     nextCookies(),
   ],
-  // Database configuration - using PostgreSQL (Supabase)
-  database: {
-    provider: 'postgresql',
-    url: process.env.DATABASE_URL,
-  },
+  // Database configuration - using PostgreSQL Pool with SSL (Supabase)
+  database: pool,
   // User configuration
   user: {
     additionalFields: {

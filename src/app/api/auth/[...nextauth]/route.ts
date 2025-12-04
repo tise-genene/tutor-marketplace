@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    return await handler.POST(request);
+    const response = await handler.POST(request);
+    return response;
   } catch (error: any) {
     console.error("Better Auth POST error:", error);
     console.error("Error details:", {
@@ -42,10 +43,16 @@ export async function POST(request: NextRequest) {
       cause: error?.cause,
       name: error?.name,
     });
+    
+    // Try to get more details from the error
+    const errorMessage = error?.message || error?.toString() || "An error occurred";
+    const errorCode = error?.code || error?.name || "UNKNOWN_ERROR";
+    
     return NextResponse.json(
       { 
         error: "Authentication error",
-        message: error?.message || "An error occurred",
+        message: errorMessage,
+        code: errorCode,
         ...(process.env.NODE_ENV === 'development' && { 
           stack: error?.stack,
           cause: error?.cause,
