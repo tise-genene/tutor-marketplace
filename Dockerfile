@@ -20,9 +20,6 @@ WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client (if needed) - only if prisma directory exists
-RUN if [ -f "prisma/schema.prisma" ]; then npx prisma generate; fi
-
 # Build Next.js
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
