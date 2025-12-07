@@ -39,6 +39,9 @@ try {
   plugins: [
     nextCookies(),
   ],
+  emailAndPassword: {
+    enabled: true,
+  },
   // Database configuration - using PostgreSQL Pool with SSL (Supabase)
   database: pool,
   // User configuration
